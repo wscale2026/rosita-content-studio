@@ -1,180 +1,152 @@
-import { useAuth } from "@/hooks/useAuth";
-import { useState, useEffect } from "react";
-import {
-  User,
-  Shield,
-  Clock,
-  Palette,
-  Globe,
-  LogOut,
-  Moon,
-  Sun,
-  Monitor,
-  ChevronRight,
-} from "lucide-react";
+import { mockData } from "@/lib/mockData";
+import { User, Shield, Users, Save, Key, Clock, MonitorSmartphone } from "lucide-react";
+import { toast } from "sonner";
+import { useState } from "react";
+
+type Tab = "profile" | "team" | "security";
+
+const tabs: { id: Tab; icon: React.FC<{ className?: string }>; label: string }[] = [
+  { id: "profile",  icon: User,   label: "Profil"    },
+  { id: "team",     icon: Users,  label: "Équipe"    },
+  { id: "security", icon: Shield, label: "Sécurité"  },
+];
 
 export default function Settings() {
-  const { user, logout, isAdmin } = useAuth();
-  const [theme, setTheme] = useState<"light" | "dark" | "system">("light");
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (theme === "dark") {
-      root.classList.add("dark");
-    } else if (theme === "light") {
-      root.classList.remove("dark");
-    } else {
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      if (prefersDark) {
-        root.classList.add("dark");
-      } else {
-        root.classList.remove("dark");
-      }
-    }
-  }, [theme]);
-
-  const sections = [
-    {
-      title: "Compte",
-      items: [
-        {
-          icon: User,
-          label: "Profil",
-          sublabel: user?.name || "Non défini",
-          action: "view" as const,
-        },
-        {
-          icon: Shield,
-          label: "Rôle",
-          sublabel: user?.role
-            ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
-            : "—",
-          action: "view" as const,
-        },
-      ],
-    },
-    {
-      title: "Apparence",
-      items: [
-        {
-          icon: Palette,
-          label: "Thème",
-          sublabel: theme === "light" ? "Clair" : theme === "dark" ? "Sombre" : "Système",
-          action: "toggle" as const,
-          content: (
-            <div className="flex gap-2 mt-2">
-              {([
-                { value: "light", icon: Sun, label: "Clair" },
-                { value: "dark", icon: Moon, label: "Sombre" },
-                { value: "system", icon: Monitor, label: "Système" },
-              ] as const).map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => setTheme(option.value)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                    theme === option.value
-                      ? "bg-[#6750A4] text-white shadow-sm"
-                      : "bg-[#E7E0EC] text-[#49454F] hover:bg-[#EADDFF]"
-                  }`}
-                >
-                  <option.icon className="h-4 w-4" />
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          ),
-        },
-        {
-          icon: Globe,
-          label: "Langue",
-          sublabel: "Français",
-          action: "view" as const,
-        },
-      ],
-    },
-    {
-      title: "Sécurité",
-      items: [
-        {
-          icon: Clock,
-          label: "Session",
-          sublabel: "Expire après 30 min d'inactivité",
-          action: "view" as const,
-        },
-      ],
-    },
-  ];
+  const [active, setActive] = useState<Tab>("profile");
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
+    <div className="space-y-5 animate-slide-up">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-medium text-[#1C1B1F] tracking-tight">
-          Paramètres
-        </h1>
-        <p className="text-sm text-[#49454F] mt-1">
-          Gérer ton compte et tes préférences
-        </p>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Paramètres</h1>
+        <p className="text-xs md:text-sm text-muted-foreground mt-0.5">Profil, équipe et sécurité.</p>
       </div>
 
-      {/* User Profile Card */}
-      <div className="p-5 rounded-xl bg-[#EADDFF] border border-[#6750A4]/20">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-[#6750A4] flex items-center justify-center text-white text-lg font-medium">
-            {user?.name?.charAt(0).toUpperCase() || "U"}
+      {/* Tab bar — horizontal scroll on mobile */}
+      <div className="flex gap-1 bg-muted/50 p-1 rounded-2xl overflow-x-auto hide-scrollbar">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActive(tab.id)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap flex-1 justify-center transition-all duration-200 ${
+              active === tab.id
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <tab.icon className="h-4 w-4 shrink-0" />
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Profile */}
+      {active === "profile" && (
+        <div className="glass-card rounded-2xl p-4 md:p-8 space-y-6 border border-border shadow-md animate-fade-in">
+          <div className="flex items-center gap-4 border-b border-border pb-5">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-purple-800 flex items-center justify-center text-white text-2xl font-bold shadow-lg shrink-0">R</div>
+            <div>
+              <h2 className="text-lg font-bold text-foreground">Rosita Content Studio</h2>
+              <p className="text-xs text-muted-foreground">Consultant TikTok Expert</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-lg font-medium text-[#1C1B1F]">
-              {user?.name || "Utilisateur"}
-            </h3>
-            <p className="text-sm text-[#49454F]">{user?.email || "—"}</p>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#6750A4] text-white mt-1 capitalize">
-              {user?.role}
-            </span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-foreground">Nom complet</label>
+              <input type="text" defaultValue="Rosita Content Studio" className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:ring-1 focus:ring-primary focus:border-primary transition-all text-sm" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-foreground">Email</label>
+              <input type="email" defaultValue="hello@rosita-studio.com" className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:ring-1 focus:ring-primary focus:border-primary transition-all text-sm" />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <label className="text-xs font-bold text-foreground">Nouveau mot de passe</label>
+              <div className="relative">
+                <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input type="password" placeholder="••••••••" className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background border border-border focus:ring-1 focus:ring-primary focus:border-primary transition-all text-sm" />
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end pt-2">
+            <button
+              onClick={() => toast.success("Paramètres enregistrés !")}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 shadow-md"
+            >
+              <Save className="h-4 w-4" /> Enregistrer
+            </button>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Settings Sections */}
-      {sections.map((section) => (
-        <div key={section.title} className="space-y-3">
-          <h2 className="text-sm font-medium text-[#49454F] uppercase tracking-wider px-1">
-            {section.title}
-          </h2>
-          <div className="bg-white rounded-xl border border-[#E7E0EC] overflow-hidden divide-y divide-[#E7E0EC]">
-            {section.items.map((item) => (
-              <div key={item.label} className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-[#FEF7FF] flex items-center justify-center">
-                      <item.icon className="h-4.5 w-4.5 text-[#6750A4]" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-[#1C1B1F]">
-                        {item.label}
-                      </p>
-                      <p className="text-xs text-[#49454F]">{item.sublabel}</p>
-                    </div>
-                  </div>
-                  {item.action === "view" && (
-                    <ChevronRight className="h-4 w-4 text-[#49454F]" />
-                  )}
+      {/* Team */}
+      {active === "team" && (
+        <div className="glass-card rounded-2xl p-4 md:p-8 space-y-5 border border-border shadow-md animate-fade-in">
+          <div className="flex items-center justify-between border-b border-border pb-4">
+            <div>
+              <h2 className="text-base md:text-lg font-bold text-foreground">Accès Équipe</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">Gérez les membres de votre espace.</p>
+            </div>
+            <button className="px-3 py-2 rounded-xl bg-primary/10 text-primary font-bold text-xs hover:bg-primary hover:text-white transition-colors">Inviter</button>
+          </div>
+          {[
+            { initials: "R", name: "Rosita Content Studio", email: "hello@rosita-studio.com", role: "Propriétaire", color: "bg-primary/20 text-primary" },
+            { initials: "M", name: "Marie Assistant", email: "marie@rosita-studio.com", role: "Éditeur", color: "bg-emerald-500/20 text-emerald-500" },
+          ].map((member) => (
+            <div key={member.email} className="flex items-center gap-3 p-3 rounded-xl border border-border bg-muted/20">
+              <div className={`w-10 h-10 rounded-full ${member.color} flex items-center justify-center font-bold shrink-0`}>{member.initials}</div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-foreground text-sm truncate">{member.name}</p>
+                <p className="text-xs text-muted-foreground truncate">{member.email}</p>
+              </div>
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-muted text-muted-foreground shrink-0">{member.role}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Security */}
+      {active === "security" && (
+        <div className="space-y-4 animate-fade-in">
+          <div className="glass-card rounded-2xl p-4 md:p-6 border border-border shadow-md space-y-4">
+            <h2 className="text-base md:text-lg font-bold text-foreground border-b border-border pb-4">Sécurité du compte</h2>
+            {[
+              { icon: Clock, label: "Déconnexion automatique", desc: "Après 30 min d'inactivité.", enabled: true, color: "text-orange-500 bg-orange-500/10" },
+              { icon: MonitorSmartphone, label: "Double authentification", desc: "Protection par SMS (2FA).", enabled: false, color: "text-blue-500 bg-blue-500/10" },
+            ].map((item) => (
+              <div key={item.label} className="flex items-center gap-3 p-3 rounded-xl border border-border bg-muted/10">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${item.color}`}>
+                  <item.icon className="h-5 w-5" />
                 </div>
-                {item.content && <div className="mt-2 ml-12">{item.content}</div>}
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-foreground text-sm">{item.label}</p>
+                  <p className="text-xs text-muted-foreground">{item.desc}</p>
+                </div>
+                {item.enabled ? (
+                  <div className="relative w-11 h-6 rounded-full bg-primary cursor-pointer shrink-0">
+                    <div className="absolute top-1 right-1 bg-white w-4 h-4 rounded-full shadow-sm" />
+                  </div>
+                ) : (
+                  <button className="px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-bold hover:bg-muted-foreground/20 transition-colors shrink-0">Activer</button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="glass-card rounded-2xl p-4 md:p-6 border border-border shadow-md space-y-3">
+            <h2 className="text-base font-bold text-foreground border-b border-border pb-3">Journal des activités</h2>
+            {mockData.securityLogs.map((log) => (
+              <div key={log.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted/20 border border-border">
+                <Shield className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-foreground text-sm">{log.action}</p>
+                  <p className="text-xs text-muted-foreground truncate">{log.user} · {log.ip}</p>
+                </div>
+                <span className="text-[10px] font-medium text-muted-foreground shrink-0">{log.time}</span>
               </div>
             ))}
           </div>
         </div>
-      ))}
-
-      {/* Logout Button */}
-      <button
-        onClick={logout}
-        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#FFEBEE] text-[#BA1A1A] text-sm font-medium hover:bg-[#FFCDD2] transition-colors"
-      >
-        <LogOut className="h-4 w-4" />
-        Se déconnecter
-      </button>
+      )}
     </div>
   );
 }

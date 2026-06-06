@@ -1,4 +1,3 @@
-import { trpc } from "@/providers/trpc";
 import { useNavigate } from "react-router";
 import {
   Users,
@@ -6,314 +5,172 @@ import {
   Mail,
   Flame,
   TrendingUp,
-  Snowflake,
-  Crown,
+  Activity,
   ArrowUpRight,
 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { mockData } from "@/lib/mockData";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
-  const { data: kpis, isLoading } = trpc.dashboard.kpis.useQuery();
-  const { data: activity } = trpc.dashboard.recentActivity.useQuery();
-  const { data: statusBreakdown } = trpc.dashboard.statusBreakdown.useQuery();
+  const { dashboard } = mockData;
 
   const kpiCards = [
     {
       title: "Nouveaux Prospects",
-      value: kpis?.newProspectsThisWeek ?? 0,
-      label: "cette semaine",
+      value: dashboard.newProspects,
+      label: "+12% cette semaine",
       icon: Users,
-      color: "#6750A4",
-      bgColor: "#EADDFF",
+      color: "text-blue-500",
+      bgColor: "bg-blue-500/10",
       onClick: () => navigate("/prospects"),
     },
     {
-      title: "Revenus",
-      value: `€${(kpis?.revenueThisMonth ?? 0).toLocaleString("fr-FR")}`,
-      label: "ce mois-ci",
+      title: "Revenus Mois",
+      value: `€${dashboard.revenue.toLocaleString("fr-FR")}`,
+      label: "+5% par rapport au mois dernier",
       icon: Euro,
-      color: "#2E7D32",
-      bgColor: "#E8F5E9",
-      onClick: () => isAdmin && navigate("/payments"),
+      color: "text-emerald-500",
+      bgColor: "bg-emerald-500/10",
+      onClick: () => navigate("/payments"),
     },
     {
-      title: "Emails Envoyés",
-      value: kpis?.emailsSentThisMonth ?? 0,
-      label: `${kpis?.emailsOpenRate ?? 0}% ouverts`,
+      title: "Taux d'ouverture",
+      value: `${dashboard.openRate}%`,
+      label: "Très performant",
       icon: Mail,
-      color: "#1565C0",
-      bgColor: "#E3F2FD",
+      color: "text-purple-500",
+      bgColor: "bg-purple-500/10",
       onClick: () => navigate("/emails"),
     },
     {
-      title: "Leads Chauds",
-      value: kpis?.warmLeadsCount ?? 0,
-      label: "à contacter",
+      title: "Prospects Chauds",
+      value: dashboard.hotProspects,
+      label: "Prêts pour l'appel",
       icon: Flame,
-      color: "#E65100",
-      bgColor: "#FFF3E0",
+      color: "text-orange-500",
+      bgColor: "bg-orange-500/10",
       onClick: () => navigate("/prospects"),
     },
   ];
 
-  const statusCards = [
-    {
-      label: "Froid",
-      count: statusBreakdown?.froid ?? 0,
-      icon: Snowflake,
-      color: "#49454F",
-      bgColor: "#E7E0EC",
-      borderColor: "#CAC4D0",
-      onClick: () => navigate("/prospects?status=froid"),
-    },
-    {
-      label: "Chaud",
-      count: statusBreakdown?.chaud ?? 0,
-      icon: Flame,
-      color: "#6750A4",
-      bgColor: "#EADDFF",
-      borderColor: "#6750A4",
-      onClick: () => navigate("/prospects?status=chaud"),
-    },
-    {
-      label: "Cliente",
-      count: statusBreakdown?.cliente ?? 0,
-      icon: Crown,
-      color: "#2E7D32",
-      bgColor: "#E8F5E9",
-      borderColor: "#2E7D32",
-      onClick: () => navigate("/prospects?status=cliente"),
-    },
-  ];
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "froid":
-        return "bg-[#E7E0EC] text-[#49454F]";
-      case "chaud":
-        return "bg-[#EADDFF] text-[#6750A4]";
-      case "cliente":
-        return "bg-[#E8F5E9] text-[#2E7D32]";
-      default:
-        return "bg-[#E7E0EC] text-[#49454F]";
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#6750A4] border-t-transparent" />
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 animate-slide-up">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-medium text-[#1C1B1F] tracking-tight">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground leading-tight">
             Tableau de bord
           </h1>
-          <p className="text-sm text-[#49454F] mt-1">
-            Vue d'ensemble de ton activité
+          <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
+            Voici l'état de votre business.
           </p>
         </div>
-        <div className="flex items-center gap-2 text-sm text-[#49454F]">
-          <TrendingUp className="h-4 w-4 text-[#2E7D32]" />
-          <span>Tout va bien !</span>
+        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full text-xs font-semibold border border-emerald-500/20 shrink-0">
+          <TrendingUp className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Croissance stable</span>
+          <span className="sm:hidden">+5%</span>
         </div>
       </div>
 
-      {/* KPI Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpiCards.map((kpi) => (
+      {/* KPI Grid — 2 col on mobile, 4 col on desktop */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">
+        {kpiCards.map((kpi, index) => (
           <button
             key={kpi.title}
             onClick={kpi.onClick}
-            className="group text-left p-5 rounded-xl bg-[#E7E0EC]/40 border border-transparent hover:border-[#6750A4]/30 transition-all duration-200 hover:shadow-sm"
+            className="group relative flex flex-col text-left p-4 md:p-6 rounded-2xl glass-card transition-all duration-300 active:scale-95 hover:-translate-y-1 hover:shadow-xl hover:border-primary/30 overflow-hidden"
+            style={{ animationDelay: `${index * 80}ms` }}
           >
-            <div className="flex items-start justify-between mb-3">
-              <div
-                className="flex items-center justify-center w-10 h-10 rounded-lg"
-                style={{ backgroundColor: kpi.bgColor }}
-              >
-                <kpi.icon className="h-5 w-5" style={{ color: kpi.color }} />
-              </div>
-              <ArrowUpRight className="h-4 w-4 text-[#49454F] opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+              <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
             </div>
-            <p className="text-[11px] font-medium text-[#49454F] uppercase tracking-wider">
+            <div className={`flex items-center justify-center w-9 h-9 md:w-12 md:h-12 rounded-xl ${kpi.bgColor} mb-3`}>
+              <kpi.icon className={`h-4 w-4 md:h-6 md:w-6 ${kpi.color}`} />
+            </div>
+            <p className="text-[10px] md:text-xs font-semibold text-muted-foreground uppercase tracking-wider leading-tight">
               {kpi.title}
             </p>
-            <p className="text-3xl font-medium text-[#1C1B1F] mt-1 tracking-tight">
+            <p className="text-xl md:text-3xl font-bold text-foreground mt-1 tracking-tight">
               {kpi.value}
             </p>
-            <p className="text-xs text-[#49454F] mt-1">{kpi.label}</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-1 font-medium leading-tight hidden sm:block">{kpi.label}</p>
           </button>
         ))}
       </div>
 
-      {/* Status Funnel + Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Status Funnel */}
-        <div className="lg:col-span-2 space-y-4">
-          <h2 className="text-lg font-medium text-[#1C1B1F]">Tunnel de conversion</h2>
-          <div className="grid grid-cols-3 gap-4">
-            {statusCards.map((status) => (
-              <button
-                key={status.label}
-                onClick={status.onClick}
-                className="group p-5 rounded-xl border-2 text-left transition-all duration-200 hover:shadow-md"
-                style={{
-                  backgroundColor: status.bgColor,
-                  borderColor: status.borderColor,
-                }}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <status.icon className="h-5 w-5" style={{ color: status.color }} />
-                  <span
-                    className="text-2xl font-medium"
-                    style={{ color: status.color }}
-                  >
-                    {status.count}
-                  </span>
-                </div>
-                <p className="text-sm font-medium" style={{ color: status.color }}>
-                  {status.label}
-                </p>
-                <div className="mt-3 h-2 rounded-full bg-white/60 overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      backgroundColor: status.color,
-                      width: `${Math.min((status.count / 20) * 100, 100)}%`,
-                    }}
-                  />
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {/* Mini chart - Conversion rates */}
-          <div className="p-5 rounded-xl bg-white border border-[#E7E0EC]">
-            <h3 className="text-sm font-medium text-[#1C1B1F] mb-4">
-              Taux de conversion
-            </h3>
-            <div className="flex items-end gap-8 h-32 px-4">
-              {[
-                {
-                  label: "Froid → Chaud",
-                  rate: statusBreakdown
-                    ? Math.round(
-                        (statusBreakdown.chaud /
-                          (statusBreakdown.froid + statusBreakdown.chaud)) *
-                          100
-                      )
-                    : 0,
-                  color: "#6750A4",
-                },
-                {
-                  label: "Chaud → Cliente",
-                  rate: statusBreakdown
-                    ? Math.round(
-                        (statusBreakdown.cliente /
-                          (statusBreakdown.chaud + statusBreakdown.cliente)) *
-                          100
-                      )
-                    : 0,
-                  color: "#2E7D32",
-                },
-                {
-                  label: "Global",
-                  rate: statusBreakdown
-                    ? Math.round(
-                        (statusBreakdown.cliente /
-                          (statusBreakdown.froid +
-                            statusBreakdown.chaud +
-                            statusBreakdown.cliente)) *
-                          100
-                      )
-                    : 0,
-                  color: "#1565C0",
-                },
-              ].map((item) => (
-                <div key={item.label} className="flex-1 flex flex-col items-center gap-2">
-                  <span className="text-lg font-medium" style={{ color: item.color }}>
-                    {item.rate}%
-                  </span>
-                  <div className="w-full bg-[#E7E0EC] rounded-full overflow-hidden" style={{ height: `${Math.max(item.rate * 1.2, 20)}px` }}>
-                    <div
-                      className="h-full rounded-full transition-all duration-700"
-                      style={{
-                        backgroundColor: item.color,
-                        width: "100%",
-                      }}
-                    />
-                  </div>
-                  <span className="text-[10px] text-[#49454F] text-center leading-tight">
-                    {item.label}
-                  </span>
-                </div>
-              ))}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        {/* Evolution Graph */}
+        <div className="lg:col-span-2 glass-card rounded-2xl p-4 md:p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-base md:text-lg font-bold text-foreground">Évolution des leads</h2>
+              <p className="text-xs text-muted-foreground">30 derniers jours</p>
             </div>
+            <Activity className="h-5 w-5 text-primary" />
+          </div>
+          <div className="h-[200px] md:h-[280px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={dashboard.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorLeads" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.4} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} minTickGap={30} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '12px', border: '1px solid hsl(var(--border))', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  itemStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
+                />
+                <Area type="monotone" dataKey="leads" stroke="#8B5CF6" strokeWidth={3} fillOpacity={1} fill="url(#colorLeads)" />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
         {/* Recent Activity */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-medium text-[#1C1B1F]">Activité récente</h2>
-          <div className="bg-white rounded-xl border border-[#E7E0EC] overflow-hidden">
-            <div className="divide-y divide-[#E7E0EC]">
-              {activity?.map((item, idx) => (
+        <div className="glass-card rounded-2xl p-4 md:p-6 flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base md:text-lg font-bold text-foreground">Activité récente</h2>
+          </div>
+          <div className="space-y-2">
+            {dashboard.recentActivity.map((item, idx) => (
+              <div
+                key={item.id}
+                className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 active:bg-muted transition-colors"
+                style={{ animationDelay: `${idx * 80}ms` }}
+              >
                 <div
-                  key={idx}
-                  className="flex items-start gap-3 p-4 hover:bg-[#FEF7FF] transition-colors"
+                  className={`shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${
+                    item.type === "sale"
+                      ? "bg-emerald-500/10 text-emerald-500"
+                      : item.type === "email"
+                      ? "bg-purple-500/10 text-purple-500"
+                      : "bg-orange-500/10 text-orange-500"
+                  }`}
                 >
-                  <div
-                    className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                      item.type === "prospect"
-                        ? "bg-[#EADDFF]"
-                        : "bg-[#E8F5E9]"
-                    }`}
-                  >
-                    {item.type === "prospect" ? (
-                      <Users className="h-4 w-4 text-[#6750A4]" />
-                    ) : (
-                      <Euro className="h-4 w-4 text-[#2E7D32]" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-[#1C1B1F] truncate">
-                      {item.description}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[11px] text-[#49454F]">
-                        {new Date(item.date).toLocaleDateString("fr-FR", {
-                          day: "numeric",
-                          month: "short",
-                        })}
-                      </span>
-                      {item.value && (
-                        <span
-                          className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${getStatusBadge(
-                            item.value
-                          )}`}
-                        >
-                          {item.value}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                  {item.type === "sale" ? (
+                    <Euro className="h-4 w-4" />
+                  ) : item.type === "email" ? (
+                    <Mail className="h-4 w-4" />
+                  ) : (
+                    <Users className="h-4 w-4" />
+                  )}
                 </div>
-              ))}
-              {(!activity || activity.length === 0) && (
-                <div className="p-6 text-center text-sm text-[#49454F]">
-                  Aucune activité récente
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground truncate">{item.title}</p>
+                  <p className="text-xs text-muted-foreground truncate">{item.time}</p>
                 </div>
-              )}
-            </div>
+                {item.amount && (
+                  <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+                    +€{item.amount}
+                  </span>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </div>

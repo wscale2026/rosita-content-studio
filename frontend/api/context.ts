@@ -17,5 +17,21 @@ export async function createContext(
   } catch {
     // Authentication is optional here
   }
+
+  // Bypass login completely in development
+  if (process.env.NODE_ENV !== "production" && !ctx.user) {
+    ctx.user = {
+      id: 1,
+      unionId: "dev-mock-id",
+      name: "Admin Dev",
+      email: "admin@dev.local",
+      avatar: "",
+      role: "admin",
+      lastSignInAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+  }
+
   return ctx;
 }

@@ -7,7 +7,6 @@ import {
   Flame,
   Zap,
   X,
-  Send,
   Compass,
   Loader2,
 } from "lucide-react";

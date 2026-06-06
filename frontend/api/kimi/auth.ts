@@ -38,7 +38,7 @@ async function exchangeAuthCode(
 }
 
 const jwks = jose.createRemoteJWKSet(
-  new URL(`${env.kimiAuthUrl}/api/.well-known/jwks.json`),
+  new URL(`${env.kimiAuthUrl || "http://localhost"}/api/.well-known/jwks.json`),
 );
 
 async function verifyAccessToken(
@@ -123,6 +123,36 @@ export function createOAuthCallbackHandler() {
     } catch (error) {
       console.error("[OAuth] Callback failed", error);
       return c.json({ error: "OAuth callback failed" }, 500);
+    }
+  };
+}
+
+export function createDevLoginHandler() {
+  return async (c: Context) => {
+    try {
+      const devUserId = env.ownerUnionId || "dev-mock-id";
+      await upsertUser({
+        unionId: devUserId,
+        name: "Admin Dev",
+        avatar: "",
+        lastSignInAt: new Date(),
+      });
+
+      const token = await signSessionToken({
+        unionId: devUserId,
+        clientId: env.appId,
+      });
+
+      const cookieOpts = getSessionCookieOptions(c.req.raw.headers);
+      setCookie(c, Session.cookieName, token, {
+        ...cookieOpts,
+        maxAge: Session.maxAgeMs / 1000,
+      });
+
+      return c.redirect("/", 302);
+    } catch (error) {
+      console.error("[DevAuth] Login failed", error);
+      return c.json({ error: "Dev login failed" }, 500);
     }
   };
 }

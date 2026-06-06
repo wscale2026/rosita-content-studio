@@ -1,197 +1,162 @@
-import { trpc } from "@/providers/trpc";
 import { useState } from "react";
-import {
-  Mail,
-  MailOpen,
-  ChevronLeft,
-  ChevronRight,
-  BarChart3,
-  Send,
-  Bot,
-  PenTool,
-} from "lucide-react";
+import { mockData } from "@/lib/mockData";
+import { CheckCircle2, XCircle, Clock, PieChart, Send, Calendar, Activity } from "lucide-react";
+import NewEmailModal from "@/components/NewEmailModal";
 
 export default function Emails() {
-  const [page, setPage] = useState(1);
-  const [type, setType] = useState<"all" | "automated" | "manual">("all");
-
-  const { data, isLoading } = trpc.email.list.useQuery({
-    page,
-    limit: 10,
-    type: type === "all" ? undefined : type,
-  });
-  const { data: stats } = trpc.email.stats.useQuery();
-
-  const getOpenRateColor = (opened: boolean, openCount: number) => {
-    if (!opened) return "text-[#49454F] bg-[#E7E0EC]";
-    if (openCount >= 3) return "text-[#2E7D32] bg-[#E8F5E9]";
-    if (openCount >= 1) return "text-[#6750A4] bg-[#EADDFF]";
-    return "text-[#49454F] bg-[#E7E0EC]";
-  };
+  const { emails } = mockData;
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-medium text-[#1C1B1F] tracking-tight">
-          Emails
-        </h1>
-        <p className="text-sm text-[#49454F] mt-1">
-          Historique des emails envoyés
-        </p>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-5 rounded-xl bg-[#EADDFF] border border-[#6750A4]/20">
-          <div className="flex items-center justify-between mb-2">
-            <Send className="h-5 w-5 text-[#6750A4]" />
-            <span className="text-[11px] font-medium text-[#6750A4] uppercase tracking-wider">
-              Total
-            </span>
+    <>
+      <div className="space-y-5 animate-slide-up">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground flex flex-wrap items-center gap-2">
+              Séquences Emails
+              <span className="px-2.5 py-1 text-[10px] font-bold bg-primary/10 text-primary rounded-full">Auto</span>
+            </h1>
+            <p className="text-xs md:text-sm text-muted-foreground mt-0.5">Séquence 90 jours — le système convertit pour vous.</p>
           </div>
-          <p className="text-3xl font-medium text-[#6750A4] tracking-tight">
-            {stats?.totalSent ?? 0}
-          </p>
-          <p className="text-xs text-[#6750A4]/70 mt-1">Emails envoyés</p>
-        </div>
-
-        <div className="p-5 rounded-xl bg-[#E8F5E9] border border-[#2E7D32]/20">
-          <div className="flex items-center justify-between mb-2">
-            <MailOpen className="h-5 w-5 text-[#2E7D32]" />
-            <span className="text-[11px] font-medium text-[#2E7D32] uppercase tracking-wider">
-              Ouverts
-            </span>
-          </div>
-          <p className="text-3xl font-medium text-[#2E7D32] tracking-tight">
-            {stats?.totalOpened ?? 0}
-          </p>
-          <p className="text-xs text-[#2E7D32]/70 mt-1">Emails ouverts</p>
-        </div>
-
-        <div className="p-5 rounded-xl bg-[#E3F2FD] border border-[#1565C0]/20">
-          <div className="flex items-center justify-between mb-2">
-            <BarChart3 className="h-5 w-5 text-[#1565C0]" />
-            <span className="text-[11px] font-medium text-[#1565C0] uppercase tracking-wider">
-              Taux
-            </span>
-          </div>
-          <p className="text-3xl font-medium text-[#1565C0] tracking-tight">
-            {stats?.averageOpenRate ?? 0}%
-          </p>
-          <p className="text-xs text-[#1565C0]/70 mt-1">Taux d'ouverture</p>
-        </div>
-      </div>
-
-      {/* Type Filter */}
-      <div className="flex gap-2">
-        {(["all", "automated", "manual"] as const).map((t) => (
           <button
-            key={t}
-            onClick={() => { setType(t); setPage(1); }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-              type === t
-                ? "bg-[#6750A4] text-white shadow-sm"
-                : "bg-white text-[#49454F] border border-[#E7E0EC] hover:border-[#6750A4]/30"
-            }`}
+            onClick={() => setEmailModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 md:px-5 md:py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs md:text-sm hover:opacity-90 shadow-lg shadow-primary/25 shrink-0"
           >
-            {t === "automated" ? <Bot className="h-4 w-4" /> : t === "manual" ? <PenTool className="h-4 w-4" /> : <Mail className="h-4 w-4" />}
-            {t === "all" ? "Tous" : t === "automated" ? "Automatisés" : "Manuels"}
+            <Send className="h-4 w-4" />
+            <span className="hidden sm:inline">Nouvel Email Manuel</span>
+            <span className="sm:hidden">Envoyer</span>
           </button>
-        ))}
-      </div>
+        </div>
 
-      {/* Email Cards */}
-      <div className="space-y-3">
-        {isLoading ? (
-          Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="p-5 rounded-xl bg-white border border-[#E7E0EC]">
-              <div className="h-4 bg-[#E7E0EC] rounded animate-pulse w-3/4" />
+        {/* Stats Cards — horizontal scroll on mobile */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="glass-card rounded-2xl p-3 md:p-5 flex flex-col md:flex-row md:items-center gap-2 md:gap-4 border-l-4 border-l-blue-500">
+            <div className="w-8 h-8 md:w-11 md:h-11 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
+              <Send className="h-4 w-4 md:h-5 md:w-5" />
             </div>
-          ))
-        ) : (
-          data?.items.map((email) => (
-            <div
-              key={email.id}
-              className="p-5 rounded-xl bg-white border border-[#E7E0EC] hover:border-[#6750A4]/20 transition-all group"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-medium text-[#1C1B1F]">
-                      {email.prospectName || "—"}
-                    </span>
-                    <span
-                      className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-                        email.type === "automated"
-                          ? "bg-[#E3F2FD] text-[#1565C0]"
-                          : "bg-[#EADDFF] text-[#6750A4]"
-                      }`}
-                    >
-                      {email.type === "automated" ? "Auto" : "Manuel"}
-                    </span>
-                  </div>
-                  <h3 className="text-base text-[#1C1B1F] group-hover:text-[#6750A4] transition-colors">
-                    {email.subject}
-                  </h3>
-                  <p className="text-sm text-[#49454F] mt-1 line-clamp-1">
-                    {email.body}
-                  </p>
-                  <p className="text-[11px] text-[#49454F]/70 mt-2">
-                    {new Date(email.sentAt).toLocaleDateString("fr-FR", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  <span
-                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium ${getOpenRateColor(
-                      email.opened,
-                      email.openCount ?? 0
-                    )}`}
-                  >
-                    {email.opened ? (
-                      <MailOpen className="h-3 w-3" />
-                    ) : (
-                      <Mail className="h-3 w-3" />
-                    )}
-                    {email.openCount ?? 0} ouverture{email.openCount !== 1 ? "s" : ""}
-                  </span>
-                </div>
-              </div>
+            <div>
+              <p className="text-[10px] md:text-xs font-semibold text-muted-foreground">Envoyés</p>
+              <p className="text-lg md:text-2xl font-bold text-foreground">{emails.stats.totalSent.toLocaleString("fr-FR")}</p>
             </div>
-          ))
-        )}
-      </div>
-
-      {/* Pagination */}
-      {data && data.totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-[#49454F]">
-            Page {page} sur {data.totalPages}
-          </span>
-          <div className="flex gap-1">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              className="p-1.5 rounded-lg hover:bg-[#E7E0EC] disabled:opacity-30 transition-colors"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
-              disabled={page >= data.totalPages}
-              className="p-1.5 rounded-lg hover:bg-[#E7E0EC] disabled:opacity-30 transition-colors"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
+          </div>
+          <div className="glass-card rounded-2xl p-3 md:p-5 flex flex-col md:flex-row md:items-center gap-2 md:gap-4 border-l-4 border-l-emerald-500">
+            <div className="w-8 h-8 md:w-11 md:h-11 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5" />
+            </div>
+            <div>
+              <p className="text-[10px] md:text-xs font-semibold text-muted-foreground">Ouverts</p>
+              <p className="text-lg md:text-2xl font-bold text-foreground">{emails.stats.totalOpened.toLocaleString("fr-FR")}</p>
+            </div>
+          </div>
+          <div className="glass-card rounded-2xl p-3 md:p-5 flex flex-col md:flex-row md:items-center gap-2 md:gap-4 border-l-4 border-l-purple-500">
+            <div className="w-8 h-8 md:w-11 md:h-11 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center shrink-0">
+              <PieChart className="h-4 w-4 md:h-5 md:w-5" />
+            </div>
+            <div>
+              <p className="text-[10px] md:text-xs font-semibold text-muted-foreground">Taux ouv.</p>
+              <p className="text-lg md:text-2xl font-bold text-foreground">{emails.stats.averageOpenRate}%</p>
+            </div>
           </div>
         </div>
-      )}
-    </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+          {/* Sequence Timeline */}
+          <div className="glass-card rounded-2xl p-4 md:p-6 lg:col-span-1">
+            <div className="flex items-center gap-2 mb-5">
+              <Clock className="h-4 w-4 text-primary" />
+              <h2 className="text-base font-bold text-foreground">Séquence 90 Jours</h2>
+            </div>
+            {/* Horizontal scroll timeline on mobile */}
+            <div className="lg:hidden flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 hide-scrollbar">
+              {emails.sequence.map((step, i) => (
+                <div key={i} className="shrink-0 w-40 bg-muted/30 rounded-xl p-3 border border-border/50">
+                  <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md inline-block mb-2">Jour {step.day}</span>
+                  <h3 className="text-xs font-bold text-foreground leading-tight">{step.title}</h3>
+                  <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed line-clamp-2">{step.description}</p>
+                </div>
+              ))}
+            </div>
+            {/* Vertical timeline on desktop */}
+            <div className="hidden lg:block relative pl-5 space-y-5 border-l-2 border-primary/20 ml-2">
+              {emails.sequence.map((step, i) => (
+                <div key={i} className="relative">
+                  <div className="absolute -left-[29px] w-3.5 h-3.5 rounded-full bg-background border-2 border-primary ring-2 ring-background" />
+                  <div className="bg-muted/30 rounded-xl p-3 border border-border/50 hover:border-primary/30 transition-colors">
+                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md mb-1.5 inline-block">Jour {step.day}</span>
+                    <h3 className="text-xs font-bold text-foreground">{step.title}</h3>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">{step.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* History */}
+          <div className="glass-card rounded-2xl lg:col-span-2 overflow-hidden flex flex-col">
+            <div className="p-4 md:p-5 border-b border-border flex items-center gap-2 bg-muted/20">
+              <Activity className="h-4 w-4 text-primary" />
+              <h2 className="text-base font-bold text-foreground">Journal récent</h2>
+            </div>
+            {/* Mobile list */}
+            <div className="md:hidden divide-y divide-border">
+              {emails.history.map((e, i) => (
+                <div key={e.id} className="flex items-center gap-3 p-4" style={{ animation: `fadeIn 0.3s ease-out ${i * 0.05}s both` }}>
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${e.type === "automated" ? "bg-primary/10 text-primary" : "bg-orange-500/10 text-orange-500"}`}>
+                    {e.type === "automated" ? <Clock className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-foreground truncate">{e.prospectName}</p>
+                    <p className="text-xs text-muted-foreground truncate">{e.subject}</p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    {e.opened
+                      ? <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-500"><CheckCircle2 className="h-3 w-3" /> {e.openCount}x</span>
+                      : <span className="inline-flex items-center gap-1 text-[10px] font-bold text-muted-foreground"><XCircle className="h-3 w-3" /> —</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Desktop table */}
+            <div className="hidden md:block flex-1 overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-muted/30 text-muted-foreground uppercase text-[10px] font-bold tracking-wider">
+                  <tr>
+                    <th className="px-6 py-4">Destinataire</th>
+                    <th className="px-6 py-4">Sujet</th>
+                    <th className="px-6 py-4">Type</th>
+                    <th className="px-6 py-4">Date</th>
+                    <th className="px-6 py-4">Statut</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {emails.history.map((e, i) => (
+                    <tr key={e.id} className="hover:bg-muted/30 transition-colors" style={{ animation: `fadeIn 0.3s ease-out ${i * 0.05}s both` }}>
+                      <td className="px-6 py-4 font-semibold text-foreground">{e.prospectName}</td>
+                      <td className="px-6 py-4 text-muted-foreground">{e.subject}</td>
+                      <td className="px-6 py-4">
+                        {e.type === "automated"
+                          ? <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-primary/10 text-primary"><Clock className="h-3 w-3" /> Auto</span>
+                          : <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-orange-500/10 text-orange-500"><Send className="h-3 w-3" /> Manuel</span>}
+                      </td>
+                      <td className="px-6 py-4 text-muted-foreground">
+                        <div className="flex items-center gap-2"><Calendar className="h-3.5 w-3.5" />{new Date(e.sentAt).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {e.opened
+                          ? <div className="flex items-center gap-2"><span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-500"><CheckCircle2 className="h-3 w-3" /> Ouvert</span><span className="text-[10px] text-muted-foreground">({e.openCount}x)</span></div>
+                          : <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-muted text-muted-foreground"><XCircle className="h-3 w-3" /> Non ouvert</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {emailModalOpen && <NewEmailModal onClose={() => setEmailModalOpen(false)} />}
+    </>
   );
 }

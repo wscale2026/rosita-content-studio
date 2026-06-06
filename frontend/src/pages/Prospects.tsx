@@ -1,501 +1,256 @@
-import { trpc } from "@/providers/trpc";
 import { useState } from "react";
-import { useSearchParams } from "react-router";
 import {
-  Users,
-  Search,
-  Snowflake,
-  Flame,
-  Crown,
-  ChevronLeft,
-  ChevronRight,
-  Send,
-  X,
-  Mail,
-  Phone,
-  Calendar,
-  Download,
+  Users, Search, Snowflake, Flame, Crown,
+  ChevronLeft, ChevronRight, Send, X, Mail, Phone, Calendar,
 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { mockData } from "@/lib/mockData";
+import { toast } from "sonner";
 
-type StatusFilter = "all" | "froid" | "chaud" | "cliente";
+type Status = "all" | "froid" | "chaud" | "cliente";
+
+const statusConfig = {
+  froid:   { label: "Froid",   icon: Snowflake, color: "text-blue-500",    bg: "bg-blue-500/10"    },
+  chaud:   { label: "Chaud",   icon: Flame,     color: "text-orange-500",  bg: "bg-orange-500/10"  },
+  cliente: { label: "Cliente", icon: Crown,     color: "text-emerald-500", bg: "bg-emerald-500/10" },
+};
+
+function StatusBadge({ status }: { status: string }) {
+  const cfg = statusConfig[status as keyof typeof statusConfig];
+  if (!cfg) return null;
+  const Icon = cfg.icon;
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${cfg.bg} ${cfg.color}`}>
+      <Icon className="h-3 w-3" /> {cfg.label}
+    </span>
+  );
+}
 
 export default function Prospects() {
-  const [searchParams] = useSearchParams();
-  const initialStatus = searchParams.get("status") as StatusFilter | null;
+  const [search, setSearch]       = useState("");
+  const [status, setStatus]       = useState<Status>("all");
+  const [, setPage]               = useState(1);
+  const [selected, setSelected]   = useState<number | null>(null);
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [subject, setSubject]     = useState("");
+  const [body, setBody]           = useState("");
 
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<StatusFilter>(initialStatus || "all");
-  const [page, setPage] = useState(1);
-  const [selectedProspect, setSelectedProspect] = useState<number | null>(null);
-  const [emailModalOpen, setEmailModalOpen] = useState(false);
-  const [emailSubject, setEmailSubject] = useState("");
-  const [emailBody, setEmailBody] = useState("");
-  const { isEditor } = useAuth();
-
-  const { data, isLoading, refetch } = trpc.prospect.list.useQuery({
-    status: status === "all" ? undefined : status,
-    search: search || undefined,
-    page,
-    limit: 10,
+  const filtered = mockData.prospects.filter((p) => {
+    const matchStatus = status === "all" || p.status === status;
+    const q = search.toLowerCase();
+    const matchSearch = !search ||
+      p.firstName.toLowerCase().includes(q) ||
+      p.lastName.toLowerCase().includes(q) ||
+      p.email.toLowerCase().includes(q);
+    return matchStatus && matchSearch;
   });
 
-  const { data: prospectDetail } = trpc.prospect.getById.useQuery(
-    { id: selectedProspect! },
-    { enabled: !!selectedProspect }
-  );
+  const detail = mockData.prospects.find((p) => p.id === selected);
 
-  const updateStatus = trpc.prospect.updateStatus.useMutation({
-    onSuccess: () => refetch(),
-  });
-
-  const sendEmail = trpc.prospect.sendEmail.useMutation({
-    onSuccess: () => {
-      setEmailModalOpen(false);
-      setEmailSubject("");
-      setEmailBody("");
-      refetch();
-    },
-  });
-
-  const statusConfig = {
-    froid: { label: "Froid", icon: Snowflake, color: "#49454F", bgColor: "#E7E0EC" },
-    chaud: { label: "Chaud", icon: Flame, color: "#6750A4", bgColor: "#EADDFF" },
-    cliente: { label: "Cliente", icon: Crown, color: "#2E7D32", bgColor: "#E8F5E9" },
-  };
-
-  const getStatusBadge = (s: string) => {
-    const config = statusConfig[s as keyof typeof statusConfig];
-    if (!config) return null;
-    const Icon = config.icon;
-    return (
-      <span
-        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium"
-        style={{ backgroundColor: config.bgColor, color: config.color }}
-      >
-        <Icon className="h-3 w-3" />
-        {config.label}
-      </span>
-    );
+  const handleSend = () => {
+    toast.success("Email envoyé !", { description: `Sujet : ${subject}` });
+    setEmailOpen(false);
+    setSubject("");
+    setBody("");
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-5 animate-slide-up">
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-medium text-[#1C1B1F] tracking-tight">
-            Prospects
-          </h1>
-          <p className="text-sm text-[#49454F] mt-1">
-            {data?.total ?? 0} prospects au total
-          </p>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Mes Prospects</h1>
+          <p className="text-xs md:text-sm text-muted-foreground mt-0.5">{filtered.length} contact{filtered.length > 1 ? "s" : ""} trouvé{filtered.length > 1 ? "s" : ""}</p>
         </div>
-        {isEditor && (
-          <button
-            onClick={() => {
-              setSelectedProspect(null);
-              setEmailModalOpen(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#6750A4] text-white text-sm font-medium hover:bg-[#4F378B] transition-colors shadow-md"
-          >
-            <Send className="h-4 w-4" />
-            Envoyer un email
-          </button>
-        )}
+        <button
+          onClick={() => { setSelected(null); setEmailOpen(true); }}
+          className="flex items-center gap-1.5 px-3 py-2 md:px-5 md:py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-primary/25 shrink-0"
+        >
+          <Send className="h-4 w-4" />
+          <span className="hidden sm:inline">Campagne</span>
+          <span className="sm:hidden">Envoyer</span>
+        </button>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        {/* Search */}
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#49454F]" />
+      {/* ── Filters ── */}
+      <div className="space-y-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Rechercher par nom ou email..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-[#E7E0EC] text-sm text-[#1C1B1F] placeholder:text-[#49454F]/60 focus:outline-none focus:border-[#6750A4] focus:ring-1 focus:ring-[#6750A4]/20 transition-all"
+            placeholder="Rechercher..."
+            className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-background border border-border focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all text-sm shadow-sm"
           />
           {search && (
-            <button
-              onClick={() => { setSearch(""); setPage(1); }}
-              className="absolute right-3 top-1/2 -translate-y-1/2"
-            >
-              <X className="h-4 w-4 text-[#49454F]" />
+            <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-muted">
+              <X className="h-4 w-4 text-muted-foreground" />
             </button>
           )}
         </div>
-
-        {/* Status Chips */}
-        <div className="flex gap-2">
-          {(["all", "froid", "chaud", "cliente"] as const).map((s) => (
+        {/* Status chips — horizontal scroll on mobile */}
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 md:mx-0 md:px-0 hide-scrollbar">
+          {(["all", "froid", "chaud", "cliente"] as Status[]).map((s) => (
             <button
               key={s}
               onClick={() => { setStatus(s); setPage(1); }}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 whitespace-nowrap shrink-0 ${
                 status === s
-                  ? "bg-[#6750A4] text-white shadow-sm"
-                  : "bg-white text-[#49454F] border border-[#E7E0EC] hover:border-[#6750A4]/30"
+                  ? "bg-primary text-primary-foreground shadow-md"
+                  : "bg-background border border-border text-muted-foreground hover:border-primary/50"
               }`}
             >
-              {s === "all" ? "Tous" : statusConfig[s]?.label}
+              {s === "all" ? "Tous" : statusConfig[s].label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-xl border border-[#E7E0EC] overflow-hidden">
+      {/* ── Mobile Card List ── */}
+      <div className="md:hidden space-y-3">
+        {filtered.map((p, i) => (
+          <div
+            key={p.id}
+            className="glass-card rounded-2xl p-4 flex items-center gap-3 active:scale-[0.99] transition-transform cursor-pointer"
+            style={{ animation: `fadeIn 0.3s ease-out ${i * 0.04}s both` }}
+            onClick={() => setSelected(p.id)}
+          >
+            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center text-primary font-bold shrink-0 text-sm shadow-sm">
+              {p.firstName[0]}{p.lastName[0]}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-bold text-foreground text-sm">{p.firstName} {p.lastName}</p>
+                <StatusBadge status={p.status} />
+              </div>
+              <p className="text-xs text-muted-foreground truncate mt-0.5">{p.email}</p>
+              <p className="text-[10px] text-muted-foreground/70 mt-0.5">{p.source}</p>
+            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); setSelected(p.id); setEmailOpen(true); }}
+              className="p-2 rounded-xl bg-primary/10 text-primary shrink-0"
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </div>
+        ))}
+        {filtered.length === 0 && (
+          <div className="py-16 text-center text-muted-foreground text-sm">Aucun prospect trouvé.</div>
+        )}
+      </div>
+
+      {/* ── Desktop Table ── */}
+      <div className="hidden md:block glass-card rounded-2xl overflow-hidden border border-border shadow-md">
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-[#E7E0EC] bg-[#FEF7FF]">
-                <th className="text-left px-5 py-3 text-[11px] font-medium text-[#49454F] uppercase tracking-wider">
-                  Nom
-                </th>
-                <th className="text-left px-5 py-3 text-[11px] font-medium text-[#49454F] uppercase tracking-wider">
-                  Contact
-                </th>
-                <th className="text-left px-5 py-3 text-[11px] font-medium text-[#49454F] uppercase tracking-wider">
-                  Statut
-                </th>
-                <th className="text-left px-5 py-3 text-[11px] font-medium text-[#49454F] uppercase tracking-wider">
-                  Source
-                </th>
-                <th className="text-left px-5 py-3 text-[11px] font-medium text-[#49454F] uppercase tracking-wider">
-                  Date
-                </th>
-                <th className="text-left px-5 py-3 text-[11px] font-medium text-[#49454F] uppercase tracking-wider">
-                  Actions
-                </th>
+          <table className="w-full text-sm text-left">
+            <thead className="bg-muted/50 text-muted-foreground uppercase text-[10px] font-bold tracking-wider">
+              <tr>
+                <th className="px-6 py-4">Contact</th>
+                <th className="px-6 py-4">Coordonnées</th>
+                <th className="px-6 py-4">Statut</th>
+                <th className="px-6 py-4">Source</th>
+                <th className="px-6 py-4">Inscription</th>
+                <th className="px-6 py-4">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E7E0EC]">
-              {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}>
-                    <td colSpan={6} className="px-5 py-4">
-                      <div className="h-4 bg-[#E7E0EC] rounded animate-pulse" />
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                data?.items.map((prospect) => (
-                  <tr
-                    key={prospect.id}
-                    className="hover:bg-[rgba(103,80,164,0.02)] transition-colors group"
-                  >
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-[#EADDFF] flex items-center justify-center text-[#6750A4] text-xs font-medium">
-                          {prospect.firstName[0]}{prospect.lastName[0]}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-[#1C1B1F]">
-                            {prospect.firstName} {prospect.lastName}
-                          </p>
-                        </div>
+            <tbody className="divide-y divide-border">
+              {filtered.map((p, i) => (
+                <tr key={p.id} className="hover:bg-muted/30 transition-colors group" style={{ animation: `fadeIn 0.3s ease-out ${i * 0.05}s both` }}>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center text-primary font-bold shadow-sm">
+                        {p.firstName[0]}{p.lastName[0]}
                       </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1.5 text-sm text-[#1C1B1F]">
-                          <Mail className="h-3.5 w-3.5 text-[#49454F]" />
-                          {prospect.email}
-                        </div>
-                        {prospect.phone && (
-                          <div className="flex items-center gap-1.5 text-xs text-[#49454F]">
-                            <Phone className="h-3.5 w-3.5" />
-                            {prospect.phone}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <button
-                        onClick={() => {
-                          const statuses: StatusFilter[] = ["froid", "chaud", "cliente"];
-                          const currentIdx = statuses.indexOf(prospect.status as StatusFilter);
-                          const nextStatus = statuses[(currentIdx + 1) % 3];
-                          updateStatus.mutate({ id: prospect.id, status: nextStatus });
-                        }}
-                        disabled={!isEditor}
-                        className={`transition-opacity ${!isEditor ? "cursor-default" : "hover:opacity-80"}`}
-                      >
-                        {getStatusBadge(prospect.status)}
-                      </button>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="text-sm text-[#49454F]">{prospect.source || "—"}</span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-1.5 text-sm text-[#49454F]">
-                        <Calendar className="h-3.5 w-3.5" />
-                        {new Date(prospect.createdAt).toLocaleDateString("fr-FR", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {isEditor && (
-                          <button
-                            onClick={() => {
-                              setSelectedProspect(prospect.id);
-                              setEmailModalOpen(true);
-                            }}
-                            className="p-1.5 rounded-lg hover:bg-[#EADDFF] transition-colors"
-                            title="Envoyer un email"
-                          >
-                            <Send className="h-4 w-4 text-[#6750A4]" />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => setSelectedProspect(prospect.id)}
-                          className="p-1.5 rounded-lg hover:bg-[#E7E0EC] transition-colors"
-                          title="Voir les détails"
-                        >
-                          <Users className="h-4 w-4 text-[#49454F]" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      <p className="font-semibold text-foreground">{p.firstName} {p.lastName}</p>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-muted-foreground"><Mail className="h-3.5 w-3.5" /><span>{p.email}</span></div>
+                      {p.phone && <div className="flex items-center gap-2 text-muted-foreground"><Phone className="h-3.5 w-3.5" /><span>{p.phone}</span></div>}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4"><StatusBadge status={p.status} /></td>
+                  <td className="px-6 py-4 text-muted-foreground font-medium">{p.source}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Calendar className="h-3.5 w-3.5" />
+                      {new Date(p.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => { setSelected(p.id); setEmailOpen(true); }} className="p-2 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors"><Send className="h-4 w-4" /></button>
+                      <button onClick={() => setSelected(p.id)} className="p-2 rounded-xl bg-muted text-muted-foreground transition-colors"><Users className="h-4 w-4" /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr><td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">Aucun prospect trouvé.</td></tr>
               )}
             </tbody>
           </table>
         </div>
-
-        {/* Pagination */}
-        {data && data.totalPages > 1 && (
-          <div className="flex items-center justify-between px-5 py-3 border-t border-[#E7E0EC]">
-            <span className="text-xs text-[#49454F]">
-              Page {page} sur {data.totalPages}
-            </span>
-            <div className="flex gap-1">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                className="p-1.5 rounded-lg hover:bg-[#E7E0EC] disabled:opacity-30 transition-colors"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
-                disabled={page >= data.totalPages}
-                className="p-1.5 rounded-lg hover:bg-[#E7E0EC] disabled:opacity-30 transition-colors"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
+        <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-muted/20">
+          <span className="text-xs font-medium text-muted-foreground">{filtered.length} prospect{filtered.length > 1 ? "s" : ""}</span>
+          <div className="flex gap-2">
+            <button disabled className="p-2 rounded-lg border border-border bg-background text-muted-foreground opacity-50"><ChevronLeft className="h-4 w-4" /></button>
+            <button disabled className="p-2 rounded-lg border border-border bg-background text-muted-foreground opacity-50"><ChevronRight className="h-4 w-4" /></button>
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Prospect Detail Drawer */}
-      {selectedProspect && prospectDetail && (
+      {/* ── Detail Drawer ── */}
+      {selected && detail && !emailOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
-          <div
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
-            onClick={() => setSelectedProspect(null)}
-          />
-          <div className="relative w-full max-w-md bg-white h-full overflow-y-auto shadow-2xl animate-in slide-in-from-right duration-300">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-medium text-[#1C1B1F]">Détails du prospect</h2>
-                <button
-                  onClick={() => setSelectedProspect(null)}
-                  className="p-2 rounded-lg hover:bg-[#E7E0EC] transition-colors"
-                >
-                  <X className="h-5 w-5 text-[#49454F]" />
-                </button>
-              </div>
-
-              <div className="space-y-6">
-                {/* Profile */}
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-full bg-[#EADDFF] flex items-center justify-center text-[#6750A4] text-lg font-medium">
-                    {prospectDetail.firstName[0]}{prospectDetail.lastName[0]}
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-medium text-[#1C1B1F]">
-                      {prospectDetail.firstName} {prospectDetail.lastName}
-                    </h3>
-                    {getStatusBadge(prospectDetail.status)}
-                  </div>
-                </div>
-
-                {/* Contact Info */}
-                <div className="p-4 rounded-xl bg-[#FEF7FF] border border-[#E7E0EC] space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-[#1C1B1F]">
-                    <Mail className="h-4 w-4 text-[#6750A4]" />
-                    {prospectDetail.email}
-                  </div>
-                  {prospectDetail.phone && (
-                    <div className="flex items-center gap-2 text-sm text-[#1C1B1F]">
-                      <Phone className="h-4 w-4 text-[#6750A4]" />
-                      {prospectDetail.phone}
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2 text-sm text-[#49454F]">
-                    <Calendar className="h-4 w-4 text-[#6750A4]" />
-                    Inscrit le {new Date(prospectDetail.createdAt).toLocaleDateString("fr-FR")}
-                  </div>
-                  {prospectDetail.source && (
-                    <div className="text-sm text-[#49454F]">
-                      Source : {prospectDetail.source}
-                    </div>
-                  )}
-                </div>
-
-                {/* Stats */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="p-3 rounded-xl bg-[#EADDFF] text-center">
-                    <p className="text-lg font-medium text-[#6750A4]">{prospectDetail.guidesDownloaded}</p>
-                    <p className="text-[10px] text-[#6750A4]/70">Guides</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-[#E3F2FD] text-center">
-                    <p className="text-lg font-medium text-[#1565C0]">{prospectDetail.emailsOpened}</p>
-                    <p className="text-[10px] text-[#1565C0]/70">Emails ouverts</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-[#E8F5E9] text-center">
-                    <p className="text-lg font-medium text-[#2E7D32]">{prospectDetail.payments?.length ?? 0}</p>
-                    <p className="text-[10px] text-[#2E7D32]/70">Paiements</p>
-                  </div>
-                </div>
-
-                {/* Payments */}
-                {prospectDetail.payments && prospectDetail.payments.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium text-[#1C1B1F] mb-2">Paiements</h4>
-                    <div className="space-y-2">
-                      {prospectDetail.payments.map((payment) => (
-                        <div
-                          key={payment.id}
-                          className="flex items-center justify-between p-3 rounded-lg bg-[#E8F5E9]"
-                        >
-                          <div>
-                            <p className="text-sm font-medium text-[#1C1B1F]">{payment.productName}</p>
-                            <p className="text-xs text-[#49454F]">{payment.geniusPayId}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium text-[#2E7D32]">€{payment.amount}</p>
-                            <span
-                              className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                                payment.status === "confirmed"
-                                  ? "bg-[#2E7D32] text-white"
-                                  : "bg-[#FFF3E0] text-[#E65100]"
-                              }`}
-                            >
-                              {payment.status}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Notes */}
-                {prospectDetail.notes && (
-                  <div>
-                    <h4 className="text-sm font-medium text-[#1C1B1F] mb-2">Notes</h4>
-                    <p className="text-sm text-[#49454F] p-3 rounded-lg bg-[#FEF7FF] border border-[#E7E0EC]">
-                      {prospectDetail.notes}
-                    </p>
-                  </div>
-                )}
-
-                {/* Actions */}
-                {isEditor && (
-                  <button
-                    onClick={() => setEmailModalOpen(true)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#6750A4] text-white text-sm font-medium hover:bg-[#4F378B] transition-colors shadow-md"
-                  >
-                    <Send className="h-4 w-4" />
-                    Envoyer un email
-                  </button>
-                )}
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setSelected(null)} />
+          <div className="relative w-full max-w-sm h-full bg-card border-l border-border shadow-2xl animate-slide-in-right overflow-y-auto p-5 pb-safe">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-bold">Profil</h2>
+              <button onClick={() => setSelected(null)} className="p-2 hover:bg-muted rounded-xl"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xl font-bold shrink-0">{detail.firstName[0]}{detail.lastName[0]}</div>
+              <div>
+                <h3 className="text-xl font-bold">{detail.firstName} {detail.lastName}</h3>
+                <div className="mt-1"><StatusBadge status={detail.status} /></div>
               </div>
             </div>
+            <div className="glass-card rounded-xl p-4 space-y-3 mb-6">
+              <div className="flex items-center gap-3 text-sm"><Mail className="h-4 w-4 text-primary shrink-0" /><span className="truncate">{detail.email}</span></div>
+              {detail.phone && <div className="flex items-center gap-3 text-sm"><Phone className="h-4 w-4 text-primary shrink-0" /><span>{detail.phone}</span></div>}
+            </div>
+            <button onClick={() => setEmailOpen(true)} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground font-bold hover:opacity-90 shadow-md">
+              <Send className="h-4 w-4" /> Envoyer un message
+            </button>
           </div>
         </div>
       )}
 
-      {/* Email Modal */}
-      {emailModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
-            onClick={() => setEmailModalOpen(false)}
-          />
-          <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl p-6 m-4 animate-in fade-in zoom-in-95 duration-200">
+      {/* ── Email Modal ── */}
+      {emailOpen && (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setEmailOpen(false)} />
+          {/* Sheet on mobile, centered modal on sm+ */}
+          <div className="relative w-full sm:max-w-lg bg-card border border-border sm:rounded-2xl rounded-t-2xl shadow-2xl p-5 sm:p-6 animate-slide-up sm:animate-scale-in max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-lg font-medium text-[#1C1B1F]">
-                {selectedProspect
-                  ? `Envoyer un email à ${prospectDetail?.firstName ?? ""}`
-                  : "Envoyer un email"}
+              <h3 className="text-base font-bold text-foreground">
+                {detail ? `Message à ${detail.firstName}` : "Nouvelle campagne"}
               </h3>
-              <button
-                onClick={() => setEmailModalOpen(false)}
-                className="p-2 rounded-lg hover:bg-[#E7E0EC] transition-colors"
-              >
-                <X className="h-5 w-5 text-[#49454F]" />
-              </button>
+              <button onClick={() => setEmailOpen(false)} className="p-2 rounded-xl hover:bg-muted"><X className="h-5 w-5 text-muted-foreground" /></button>
             </div>
-
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-[#1C1B1F] mb-1.5 block">
-                  Objet
-                </label>
-                <input
-                  type="text"
-                  value={emailSubject}
-                  onChange={(e) => setEmailSubject(e.target.value)}
-                  placeholder="Sujet de l'email"
-                  className="w-full px-4 py-2.5 rounded-xl bg-[#FEF7FF] border border-[#E7E0EC] text-sm text-[#1C1B1F] placeholder:text-[#49454F]/60 focus:outline-none focus:border-[#6750A4] focus:ring-1 focus:ring-[#6750A4]/20 transition-all"
-                />
+                <label className="text-xs font-bold text-foreground mb-1.5 block">Sujet</label>
+                <input type="text" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Ex: Ton cadeau est là 🎁" className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:outline-none focus:border-primary text-sm" />
               </div>
               <div>
-                <label className="text-sm font-medium text-[#1C1B1F] mb-1.5 block">
-                  Message
-                </label>
-                <textarea
-                  value={emailBody}
-                  onChange={(e) => setEmailBody(e.target.value)}
-                  placeholder="Contenu de l'email..."
-                  rows={6}
-                  className="w-full px-4 py-2.5 rounded-xl bg-[#FEF7FF] border border-[#E7E0EC] text-sm text-[#1C1B1F] placeholder:text-[#49454F]/60 focus:outline-none focus:border-[#6750A4] focus:ring-1 focus:ring-[#6750A4]/20 transition-all resize-none"
-                />
+                <label className="text-xs font-bold text-foreground mb-1.5 block">Message</label>
+                <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={5} placeholder="Écris ton message ici..." className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:outline-none focus:border-primary text-sm resize-none" />
               </div>
-              <button
-                onClick={() => {
-                  if (selectedProspect) {
-                    sendEmail.mutate({
-                      prospectId: selectedProspect,
-                      subject: emailSubject,
-                      body: emailBody,
-                    });
-                  }
-                }}
-                disabled={!emailSubject.trim() || !emailBody.trim() || sendEmail.isPending || !selectedProspect}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#6750A4] text-white text-sm font-medium hover:bg-[#4F378B] transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {sendEmail.isPending ? (
-                  <>
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Envoi en cours...
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4" />
-                    Envoyer
-                  </>
-                )}
+              <button onClick={handleSend} disabled={!subject.trim() || !body.trim()} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground font-bold hover:opacity-90 shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                <Send className="h-4 w-4" /> Envoyer
               </button>
             </div>
           </div>
