@@ -137,4 +137,4 @@ coverage/
 *.bak
 
 #Videos
-*.mp4
+frontend/public/videos/*.mp4
