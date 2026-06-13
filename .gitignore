@@ -135,3 +135,6 @@ coverage/
 *.tmp
 *.temp
 *.bak
+
+#Videos
+*.mp4
