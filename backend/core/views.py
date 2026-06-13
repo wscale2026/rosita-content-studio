@@ -30,12 +30,6 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         # Add custom user info to the response
         data['user'] = UserSerializer(self.user).data
 
-        # Log connection
-        from .models import SecurityLog
-        request = self.context.get('request')
-        ip = request.META.get('REMOTE_ADDR') if request else '0.0.0.0'
-        SecurityLog.objects.create(user=self.user, action="Connexion réussie", ip_address=ip)
-
         return data
 
 from django.core.cache import cache
@@ -70,6 +64,10 @@ class LoginView(TokenObtainPairView):
             except Exception as e:
                 print(f"Error sending OTP: {e}")
                 
+            ip = request.META.get('REMOTE_ADDR', '0.0.0.0')
+            from .models import SecurityLog
+            SecurityLog.objects.create(user=user, action="Tentative de connexion (2FA requis)", ip_address=ip)
+                
             return Response({
                 "requires_2fa": True,
                 "user_id": user.id,
@@ -79,6 +77,10 @@ class LoginView(TokenObtainPairView):
             
         data = serializer.validated_data
         data['user']['auto_logout'] = settings_obj.auto_logout
+        
+        ip = request.META.get('REMOTE_ADDR', '0.0.0.0')
+        from .models import SecurityLog
+        SecurityLog.objects.create(user=user, action="Connexion réussie", ip_address=ip)
         
         return Response(data, status=status.HTTP_200_OK)
 
