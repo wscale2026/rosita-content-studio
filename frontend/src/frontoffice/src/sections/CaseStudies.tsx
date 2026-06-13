@@ -9,7 +9,7 @@ import { PlayCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const videos = [
   {
-    src: '/videos/testimony_1.mp4',
+    src: '', //'/videos/testimony_1.mp4',
     title: 'Power Beauty',
     desc: "Découvrez comment l'accompagnement a transformé sa présence en ligne.",
   },
