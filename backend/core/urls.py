@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import LoginView, RegisterView, PasswordResetRequestView, PasswordResetConfirmView, ProspectViewSet, PaymentViewSet, DashboardStatsView, CheckoutInitiateView, GeniusPayWebhookView, LeadMagnetView, ClearProspectsView, ClearPaymentsView, SendEmailView, EmailLogViewSet, EmailStatsView, EmailTrackView, ContentViewSet, ContentDownloadView, ProfileUpdateView, TeamListView, TeamInviteView, TeamMemberDetailView, SecuritySettingsView, SequenceStepViewSet, CronSequenceView
+from .views import LoginView, RegisterView, PasswordResetRequestView, PasswordResetConfirmView, ProspectViewSet, PaymentViewSet, DashboardStatsView, CheckoutInitiateView, GeniusPayWebhookView, LeadMagnetView, ClearProspectsView, ClearPaymentsView, SendEmailView, EmailLogViewSet, EmailStatsView, EmailTrackView, ContentViewSet, ContentDownloadView, ProfileUpdateView, TeamListView, TeamInviteView, TeamMemberDetailView, SecuritySettingsView, SequenceStepViewSet, CronSequenceView, Verify2FAView
 
 router = DefaultRouter()
 router.register(r'prospects', ProspectViewSet)
@@ -11,6 +11,7 @@ router.register(r'content', ContentViewSet, basename='content')
 
 urlpatterns = [
     path('auth/login/', LoginView.as_view(), name='login'),
+    path('auth/verify-2fa/', Verify2FAView.as_view(), name='verify_2fa'),
     path('auth/register/', RegisterView.as_view(), name='register'),
     path('auth/password-reset/', PasswordResetRequestView.as_view(), name='password_reset'),
     path('auth/password-reset-confirm/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),

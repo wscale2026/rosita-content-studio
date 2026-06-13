@@ -1,6 +1,6 @@
 // Pure frontend useAuth — reads from localStorage, no tRPC / no backend needed.
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { getStoredUser, loginUser, logoutUser, type MockUser } from "@/lib/auth";
+import { getStoredUser, loginUser, logoutUser, verify2FA, type MockUser } from "@/lib/auth";
 
 export function useAuth() {
   const [user, setUser] = useState<MockUser | null>(null);
@@ -14,7 +14,20 @@ export function useAuth() {
 
   const login = useCallback(async (email: string, password: string) => {
     try {
-      const u = await loginUser(email, password);
+      const res = await loginUser(email, password);
+      if (res.requires_2fa) {
+        return res;
+      }
+      setUser(res as MockUser);
+      return res;
+    } catch (err) {
+      throw err;
+    }
+  }, []);
+
+  const verify2FACode = useCallback(async (userId: number, otp: string) => {
+    try {
+      const u = await verify2FA(userId, otp);
       setUser(u);
       return u;
     } catch (err) {
@@ -46,6 +59,7 @@ export function useAuth() {
         isLoading,
         error: null,
         login,
+        verify2FACode,
         logout,
         refresh: () => setUser(getStoredUser()),
       };

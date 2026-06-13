@@ -38,9 +38,91 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         return data
 
+from django.core.cache import cache
+import random
+from django.core.mail import send_mail
+from django.conf import settings
+
 class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
     permission_classes = (AllowAny,)
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except Exception as e:
+            return Response(e.detail, status=status.HTTP_401_UNAUTHORIZED)
+        
+        user = serializer.user
+        
+        from .models import UserSettings
+        settings_obj, _ = UserSettings.objects.get_or_create(user=user)
+        
+        if settings_obj.two_factor_auth:
+            otp = str(random.randint(100000, 999999))
+            cache.set(f"2fa_{user.id}", otp, timeout=300)
+            
+            subject = "Votre code de vérification"
+            body = f"Bonjour {user.first_name or user.email},\n\nVotre code de vérification est : {otp}\nCe code est valide pendant 5 minutes."
+            try:
+                send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=True)
+            except Exception as e:
+                print(f"Error sending OTP: {e}")
+                
+            return Response({
+                "requires_2fa": True,
+                "user_id": user.id,
+                "email": user.email,
+                "message": "Un code de vérification vous a été envoyé par email."
+            })
+            
+        data = serializer.validated_data
+        data['user']['auto_logout'] = settings_obj.auto_logout
+        
+        return Response(data, status=status.HTTP_200_OK)
+
+from rest_framework_simplejwt.tokens import RefreshToken
+
+class Verify2FAView(APIView):
+    permission_classes = (AllowAny,)
+
+    def post(self, request):
+        user_id = request.data.get('user_id')
+        otp_submitted = request.data.get('otp')
+        
+        if not user_id or not otp_submitted:
+            return Response({"error": "Données manquantes."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        stored_otp = cache.get(f"2fa_{user_id}")
+        
+        if not stored_otp or str(stored_otp) != str(otp_submitted):
+            return Response({"error": "Code invalide ou expiré."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        cache.delete(f"2fa_{user_id}")
+        
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "Utilisateur introuvable."}, status=status.HTTP_404_NOT_FOUND)
+            
+        refresh = RefreshToken.for_user(user)
+        
+        from .serializers import UserSerializer
+        from .models import UserSettings, SecurityLog
+        settings_obj, _ = UserSettings.objects.get_or_create(user=user)
+        
+        user_data = UserSerializer(user).data
+        user_data['auto_logout'] = settings_obj.auto_logout
+        
+        ip = request.META.get('REMOTE_ADDR', '0.0.0.0')
+        SecurityLog.objects.create(user=user, action="Connexion réussie (2FA)", ip_address=ip)
+        
+        return Response({
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+            "user": user_data
+        }, status=status.HTTP_200_OK)
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()

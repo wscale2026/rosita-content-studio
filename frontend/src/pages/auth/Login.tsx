@@ -18,7 +18,11 @@ type LoginForm = z.infer<typeof loginSchema>;
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login } = useAuth();
+  const [step, setStep] = useState<"login" | "2fa">("login");
+  const [userId, setUserId] = useState<number | null>(null);
+  const [otp, setOtp] = useState("");
+  
+  const { login, verify2FACode } = useAuth();
   const navigate = useNavigate();
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
@@ -28,15 +32,77 @@ export default function Login() {
   const onSubmit = async (data: LoginForm) => {
     setIsLoading(true);
     try {
-      await login(data.email, data.password);
-      toast.success("Connexion réussie !");
-      setTimeout(() => navigate("/backoffice", { replace: true }), 200);
+      const res = await login(data.email, data.password);
+      if (res && res.requires_2fa) {
+        setUserId(res.user_id);
+        setStep("2fa");
+        toast.info(res.message || "Code de vérification envoyé.");
+      } else {
+        toast.success("Connexion réussie !");
+        setTimeout(() => navigate("/backoffice", { replace: true }), 200);
+      }
     } catch (error) {
       console.error("[Login] error:", error);
       toast.error("Erreur de connexion", { description: "Veuillez réessayer." });
+    } finally {
       setIsLoading(false);
     }
   };
+
+  const onVerify2FA = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userId || !otp) return;
+    setIsLoading(true);
+    try {
+      await verify2FACode(userId, otp);
+      toast.success("Connexion réussie !");
+      setTimeout(() => navigate("/backoffice", { replace: true }), 200);
+    } catch (error: any) {
+      toast.error(error.message || "Code invalide");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (step === "2fa") {
+    return (
+      <AuthContainer 
+        title="Double Authentification" 
+        subtitle="Un code vous a été envoyé par email."
+      >
+        <form onSubmit={onVerify2FA} className="space-y-4">
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-foreground ml-1 block text-center">Code à 6 chiffres</label>
+            <input
+              type="text"
+              maxLength={6}
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ''))}
+              placeholder="000000"
+              className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-center text-2xl tracking-widest font-mono transition-all"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading || otp.length < 6}
+            className="w-full flex items-center justify-center gap-2 py-3 mt-6 rounded-xl bg-primary text-primary-foreground font-bold hover:opacity-90 transition-opacity shadow-lg shadow-primary/25 disabled:opacity-70"
+          >
+            {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Lock className="h-5 w-5" />}
+            Valider
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => setStep("login")}
+            className="w-full text-xs text-muted-foreground hover:text-foreground mt-4 text-center font-medium"
+          >
+            Annuler
+          </button>
+        </form>
+      </AuthContainer>
+    );
+  }
 
   return (
     <AuthContainer 

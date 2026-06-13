@@ -13,6 +13,7 @@ export type MockUser = {
   phone: string;
   role: "admin" | "client";
   name?: string;
+  auto_logout?: boolean;
 };
 
 export function getStoredUser(): MockUser | null {
@@ -31,7 +32,7 @@ export function getAuthHeaders() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-export async function loginUser(email: string, password: string): Promise<MockUser> {
+export async function loginUser(email: string, password: string): Promise<any> {
   const res = await fetch(`${API_URL}/login/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -44,6 +45,36 @@ export async function loginUser(email: string, password: string): Promise<MockUs
   }
 
   const data = await res.json();
+  
+  if (data.requires_2fa) {
+    return data; // { requires_2fa: true, user_id: number, email: string, message: string }
+  }
+
+  const user = {
+    ...data.user,
+    name: `${data.user.first_name} ${data.user.last_name}`.trim() || data.user.email.split("@")[0]
+  };
+
+  localStorage.setItem(TOKEN_KEY, data.access);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+  
+  return user;
+}
+
+export async function verify2FA(userId: number, otp: string): Promise<MockUser> {
+  const res = await fetch(`${API_URL}/verify-2fa/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id: userId, otp }),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || "Code invalide");
+  }
+
+  const data = await res.json();
+  
   const user = {
     ...data.user,
     name: `${data.user.first_name} ${data.user.last_name}`.trim() || data.user.email.split("@")[0]

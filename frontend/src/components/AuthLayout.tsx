@@ -23,6 +23,7 @@ import {
 import { type ReactNode, useState, useEffect } from "react";
 import { useLocation, useNavigate, Navigate } from "react-router";
 import { AIChat } from "./AIChat";
+import IdleTimer from "./IdleTimer";
 
 // ── Theme helpers ─────────────────────────────────────────────────────────────
 const THEME_KEY = "rosyta_theme";
@@ -331,6 +332,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       )}
 
       {/* ══ AI CHAT PANEL ═══════════════════════════════════════════════════════ */}
+      <IdleTimer />
       <AIChat open={chatOpen} onClose={() => setChatOpen(false)} />
 
       {/* ══ LOGOUT CONFIRMATION DIALOG ════════════════════════════════════════ */}
