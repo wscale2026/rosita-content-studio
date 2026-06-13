@@ -792,6 +792,9 @@ class TeamListView(APIView):
             data.append({
                 "id": u.id,
                 "name": f"{u.first_name} {u.last_name}".strip() or u.email,
+                "firstName": u.first_name,
+                "lastName": u.last_name,
+                "phone": u.phone,
                 "email": u.email,
                 "role": computed_role.capitalize(),
                 "status": "Actif" if u.is_active else "Inactif",
@@ -813,6 +816,9 @@ class TeamInviteView(APIView):
             return Response({"error": "Permission refusée."}, status=status.HTTP_403_FORBIDDEN)
             
         email = request.data.get('email')
+        first_name = request.data.get('first_name', '')
+        last_name = request.data.get('last_name', '')
+        phone = request.data.get('phone', '')
         role = request.data.get('role', 'éditeur').lower()
         
         if not email:
@@ -823,7 +829,7 @@ class TeamInviteView(APIView):
         is_admin = request.user.role == 'admin' or request.user.role == 'administrateur'
 
         if not (is_proprio or is_admin):
-            return Response({"error": "Seul un administrateur ou propriétaire peut inviter des membres."}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"error": "Seul un administrateur ou propriétaire peut créer des membres."}, status=status.HTTP_403_FORBIDDEN)
 
         if role == 'propriétaire' and not is_proprio:
             return Response({"error": "Seul un propriétaire peut nommer un autre propriétaire."}, status=status.HTTP_403_FORBIDDEN)
@@ -831,49 +837,114 @@ class TeamInviteView(APIView):
         if User.objects.filter(email=email).exists():
             return Response({"error": "Un utilisateur avec cet email existe déjà."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Generate a secure random password if not provided
+        password = request.data.get('password')
+        if not password:
+            import string
+            import random
+            chars = string.ascii_letters + string.digits + "!@#$%^&*"
+            password = ''.join(random.choice(chars) for _ in range(12))
+
         # Create user
-        random_password = User.objects.make_random_password()
         user = User.objects.create_user(
             username=email,
             email=email,
-            password=random_password,
+            password=password,
+            first_name=first_name,
+            last_name=last_name,
+            phone=phone,
             is_staff=True,
             is_superuser=(role == 'propriétaire'),
             role=role
         )
 
-        # Generate reset token for the invitation
-        token = default_token_generator.make_token(user)
-        uid = urlsafe_base64_encode(force_bytes(user.pk))
-        
         frontend_url = getattr(settings, 'FRONTEND_URL', f"http://{request.get_host().split(':')[0]}:5173")
-        reset_link = f"{frontend_url}/reset-password?uid={uid}&token={token}"
+        login_link = f"{frontend_url}/backoffice/login"
 
-        # Send Email
-        subject = "Invitation à rejoindre Rosyta Content Studio"
-        body = f"""Bonjour,
+        # Send HTML Email
+        subject = "Bienvenue dans l'équipe Rosyta Content Studio"
+        
+        html_body = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{ font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f4f5; margin: 0; padding: 0; }}
+                .container {{ max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }}
+                .header {{ background-color: #6750A4; padding: 30px 20px; text-align: center; color: #ffffff; }}
+                .header h1 {{ margin: 0; font-size: 24px; font-weight: 600; }}
+                .content {{ padding: 30px 40px; color: #3f3f46; line-height: 1.6; }}
+                .content h2 {{ color: #18181b; font-size: 20px; margin-top: 0; }}
+                .credentials-box {{ background-color: #f4f4f5; border-radius: 8px; padding: 20px; margin: 25px 0; border: 1px solid #e4e4e7; }}
+                .credentials-row {{ display: flex; margin-bottom: 10px; }}
+                .credentials-label {{ font-weight: 600; width: 120px; color: #52525b; }}
+                .credentials-value {{ font-family: monospace; font-size: 16px; color: #18181b; font-weight: bold; background: #e4e4e7; padding: 2px 6px; border-radius: 4px; }}
+                .button-container {{ text-align: center; margin: 35px 0 15px; }}
+                .button {{ background-color: #6750A4; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: bold; display: inline-block; }}
+                .footer {{ text-align: center; padding: 20px; color: #a1a1aa; font-size: 12px; border-top: 1px solid #f4f4f5; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>Rosyta Content Studio</h1>
+                </div>
+                <div class="content">
+                    <h2>Bienvenue {first_name} !</h2>
+                    <p>Vous avez été ajouté(e) à l'équipe Rosyta Content Studio en tant que <strong>{role.capitalize()}</strong>. Votre compte administrateur est désormais actif.</p>
+                    
+                    <p>Voici vos identifiants de connexion générés de manière sécurisée :</p>
+                    
+                    <div class="credentials-box">
+                        <div class="credentials-row">
+                            <div class="credentials-label">Email :</div>
+                            <div style="font-weight: bold;">{email}</div>
+                        </div>
+                        <div class="credentials-row">
+                            <div class="credentials-label">Mot de passe :</div>
+                            <div class="credentials-value">{password}</div>
+                        </div>
+                    </div>
+                    
+                    <p>Nous vous recommandons de conserver cet email précieusement ou de modifier votre mot de passe une fois connecté(e) via les paramètres de votre profil.</p>
+                    
+                    <div class="button-container">
+                        <a href="{login_link}" class="button">Accéder à mon espace</a>
+                    </div>
+                </div>
+                <div class="footer">
+                    &copy; {getattr(settings, 'CURRENT_YEAR', '2026')} Rosyta Content Studio. Cet email a été envoyé automatiquement.
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        text_body = f"""Bonjour {first_name},
+        
+Vous avez été ajouté à l'équipe Rosyta Content Studio en tant que {role.capitalize()}.
+Vos identifiants de connexion sont :
+Email : {email}
+Mot de passe : {password}
 
-Vous avez été invité à rejoindre l'équipe Rosyta Content Studio en tant que {role.capitalize()}.
-Votre compte a été créé. Pour configurer votre mot de passe et vous connecter, veuillez cliquer sur le lien suivant :
-
-{reset_link}
-
-À très bientôt,
-L'équipe Rosyta Content Studio
+Connectez-vous ici : {login_link}
 """
+
         try:
             msg = EmailMultiAlternatives(
                 subject=subject,
-                body=body,
+                body=text_body,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 to=[email]
             )
+            msg.attach_alternative(html_body, "text/html")
             msg.send()
         except Exception as e:
-            # If email fails, user is still created, but we notify the admin
+            # If email fails, user is still created
+            print(f"Failed to send email: {e}")
             pass
             
-        return Response({"message": f"Invitation envoyée à {email}."})
+        return Response({"message": f"Membre créé et identifiants envoyés à {email}."})
 
 class TeamMemberDetailView(APIView):
     permission_classes = [IsAdminOrProprietaire]
@@ -884,24 +955,39 @@ class TeamMemberDetailView(APIView):
         return get_object_or_404(User, pk=pk)
 
     def put(self, request, pk):
-        # Update Role
         target_user = self._get_user(pk)
-        new_role = request.data.get('role', '').lower()
         
-        if not new_role:
-            return Response({"error": "Le rôle est requis."}, status=status.HTTP_400_BAD_REQUEST)
-
         # Permissions
         is_proprio = request.user.is_superuser or request.user.role in ['propriétaire', 'superadmin']
         is_admin = request.user.role in ['admin', 'administrateur']
         target_is_proprio = target_user.is_superuser or target_user.role in ['propriétaire', 'superadmin']
         
         if not (is_proprio or is_admin):
-            return Response({"error": "Seul un administrateur ou propriétaire peut modifier les rôles."}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"error": "Seul un administrateur ou propriétaire peut modifier les membres."}, status=status.HTTP_403_FORBIDDEN)
             
         if target_is_proprio and not request.user.is_superuser and request.user.id != target_user.id:
             return Response({"error": "Vous n'avez pas l'autorisation de modifier un propriétaire."}, status=status.HTTP_403_FORBIDDEN)
+
+        # Reset Password Logic
+        if request.data.get('reset_password'):
+            import string
+            import random
+            chars = string.ascii_letters + string.digits + "!@#$%^&*"
+            new_password = ''.join(random.choice(chars) for _ in range(12))
             
+            target_user.set_password(new_password)
+            target_user.save(update_fields=['password'])
+            
+            return Response({
+                "message": "Mot de passe réinitialisé avec succès.",
+                "new_password": new_password
+            })
+
+        # Update Role Logic
+        new_role = request.data.get('role', '').lower()
+        if not new_role:
+            return Response({"error": "Le rôle est requis."}, status=status.HTTP_400_BAD_REQUEST)
+
         if new_role == 'propriétaire' and not is_proprio:
             return Response({"error": "Seul un propriétaire peut nommer un nouveau propriétaire."}, status=status.HTTP_403_FORBIDDEN)
 

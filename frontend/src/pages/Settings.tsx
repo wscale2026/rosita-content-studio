@@ -1,7 +1,8 @@
 import { mockData } from "@/lib/mockData";
-import { User, Shield, Users, Save, Key, Clock, MonitorSmartphone, Eye, EyeOff, Camera, X, Send, Edit } from "lucide-react";
+import { User, Shield, Users, Save, Key, Clock, MonitorSmartphone, Eye, EyeOff, Camera, X, Send, Edit, Plus, Info, UserPlus, Loader2, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -248,10 +249,14 @@ function TeamTab() {
           id: m.id,
           initials: (m.name || m.email || "X").charAt(0).toUpperCase(),
           name: m.name || m.email,
+          firstName: m.firstName || "",
+          lastName: m.lastName || "",
+          phone: m.phone || "",
           email: m.email,
           role: m.role || "Inconnu",
           color: "bg-primary/20 text-primary",
-          status: m.status || "Inconnu"
+          status: m.status || "Inconnu",
+          joinedAt: m.joinedAt || new Date().toISOString()
         })));
       } else {
         console.error("Failed to fetch team. Status:", res.status);
@@ -265,16 +270,49 @@ function TeamTab() {
     fetchTeam();
   }, []);
 
-  const [isInviteOpen, setIsInviteOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState("Éditeur");
+  const [isCreating, setIsCreating] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [isUpdatingRole, setIsUpdatingRole] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [createData, setCreateData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    role: "Éditeur",
+    password: ""
+  });
 
+  const generateRandomPassword = () => {
+    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+    let pwd = "";
+    for(let i=0; i<12; i++) {
+      pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return pwd;
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Mot de passe copié !");
+  };
+
+  const openCreateModal = () => {
+    setCreateData({ ...createData, password: generateRandomPassword() });
+    setIsCreateOpen(true);
+  };
+
+  const [viewMember, setViewMember] = useState<any | null>(null);
+  const [resetedPassword, setResetedPassword] = useState<string | null>(null);
   const [editingMember, setEditingMember] = useState<{id: number, email: string, role: string} | null>(null);
 
-  const handleInvite = async (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inviteEmail) return;
+    if (!createData.email || !createData.firstName || !createData.lastName) return;
     
+    setIsCreating(true);
     try {
       const res = await fetch(`${API_BASE_URL}/auth/team/invite/`, {
         method: "POST",
@@ -282,21 +320,29 @@ function TeamTab() {
           "Content-Type": "application/json",
           ...getAuthHeaders()
         },
-        body: JSON.stringify({ email: inviteEmail, role: inviteRole })
+        body: JSON.stringify({ 
+          email: createData.email, 
+          first_name: createData.firstName,
+          last_name: createData.lastName,
+          phone: createData.phone,
+          role: createData.role,
+          password: createData.password
+        })
       });
       
       const data = await res.json();
       if (res.ok) {
-        toast.success(data.message || `Invitation envoyée à ${inviteEmail}`);
-        setIsInviteOpen(false);
-        setInviteEmail("");
-        setInviteRole("Éditeur");
+        toast.success(data.message || `Membre créé avec succès`);
+        setIsCreateOpen(false);
+        setCreateData({ firstName: "", lastName: "", email: "", phone: "", role: "Éditeur", password: "" });
         fetchTeam();
       } else {
-        toast.error(data.error || "Erreur lors de l'invitation");
+        toast.error(data.error || "Erreur lors de la création");
       }
     } catch (error) {
       toast.error("Erreur réseau");
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -304,6 +350,7 @@ function TeamTab() {
     e.preventDefault();
     if (!editingMember) return;
     
+    setIsUpdatingRole(true);
     try {
       const res = await fetch(`${API_BASE_URL}/auth/team/${editingMember.id}/`, {
         method: "PUT",
@@ -324,6 +371,8 @@ function TeamTab() {
       }
     } catch (error) {
       toast.error("Erreur réseau");
+    } finally {
+      setIsUpdatingRole(false);
     }
   };
 
@@ -331,6 +380,7 @@ function TeamTab() {
 
   const confirmDeleteMember = async () => {
     if (!memberToDelete) return;
+    setIsDeleting(true);
     try {
       const res = await fetch(`${API_BASE_URL}/auth/team/${memberToDelete}/`, {
         method: "DELETE",
@@ -346,6 +396,30 @@ function TeamTab() {
       }
     } catch (error) {
       toast.error("Erreur réseau");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleResetPassword = async (memberId: number) => {
+    setIsResetting(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/team/${memberId}/`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify({ reset_password: true })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message);
+        setResetedPassword(data.new_password);
+      } else {
+        toast.error(data.error || "Erreur de réinitialisation");
+      }
+    } catch (error) {
+      toast.error("Erreur réseau");
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -358,10 +432,10 @@ function TeamTab() {
             <p className="text-xs text-muted-foreground mt-0.5">Gérez les membres de votre espace.</p>
           </div>
           <button
-            onClick={() => setIsInviteOpen(true)}
-            className="px-4 py-2 rounded-xl bg-primary/10 text-primary font-bold text-sm hover:bg-primary hover:text-white transition-colors shadow-sm"
+            onClick={openCreateModal}
+            className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-colors shadow-sm flex items-center gap-2"
           >
-            Inviter
+            <Plus className="h-4 w-4" /> Créer un membre
           </button>
         </div>
         {members.map((member) => (
@@ -377,6 +451,15 @@ function TeamTab() {
                 <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-muted text-muted-foreground border border-border">
                   {member.role}
                 </span>
+                {isSuperadmin && (
+                  <button
+                    onClick={() => setViewMember(member)}
+                    className="p-1.5 rounded-lg bg-background border border-border text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors shadow-sm"
+                    title="Voir les détails"
+                  >
+                    <Eye className="h-3 w-3" />
+                  </button>
+                )}
                 {member.email !== user?.email && isSuperadmin && (
                   <button
                     onClick={() => setMemberToDelete(member.id)}
@@ -393,13 +476,22 @@ function TeamTab() {
                   {member.role}
                 </span>
                 {isSuperadmin && (
-                  <button
-                    onClick={() => setEditingMember({ id: member.id, email: member.email, role: member.role })}
-                    className="p-1.5 rounded-lg bg-background border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shadow-sm"
-                    aria-label="Modifier le rôle"
-                  >
-                    <Edit className="h-3 w-3" />
-                  </button>
+                  <>
+                    <button
+                      onClick={() => setViewMember(member)}
+                      className="p-1.5 rounded-lg bg-background border border-border text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors shadow-sm"
+                      title="Voir les détails"
+                    >
+                      <Eye className="h-3 w-3" />
+                    </button>
+                    <button
+                      onClick={() => setEditingMember({ id: member.id, email: member.email, role: member.role })}
+                      className="p-1.5 rounded-lg bg-background border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shadow-sm"
+                      aria-label="Modifier le rôle"
+                    >
+                      <Edit className="h-3 w-3" />
+                    </button>
+                  </>
                 )}
                 {member.email !== user?.email && isSuperadmin && (
                   <button
@@ -416,32 +508,171 @@ function TeamTab() {
         ))}
       </div>
 
-      {/* Invite Modal Overlay */}
-      {isInviteOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setIsInviteOpen(false)} />
-          {/* Dialog */}
-          <div className="relative bg-card border border-border rounded-3xl shadow-2xl w-full max-w-md animate-in zoom-in-95 fade-in duration-200 overflow-hidden">
+      {/* Member Details Modal Overlay */}
+      {viewMember && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-0 sm:p-4">
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => { setViewMember(null); setResetedPassword(null); }} />
+          <div className="relative w-full sm:max-w-md h-[100dvh] sm:h-auto sm:max-h-[92vh] bg-card border-0 sm:border border-border rounded-none sm:rounded-3xl shadow-2xl flex flex-col animate-in zoom-in-95 fade-in duration-200 overflow-hidden z-10">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
-              <h3 className="text-lg font-bold text-foreground">Inviter un membre</h3>
+              <h3 className="text-lg font-bold text-foreground">Détails du membre</h3>
               <button
-                onClick={() => setIsInviteOpen(false)}
+                onClick={() => { setViewMember(null); setResetedPassword(null); }}
+                className="p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-6 flex-1 overflow-y-auto">
+              <div className="flex items-center gap-4">
+                <div className={`w-16 h-16 rounded-full ${viewMember.color} flex items-center justify-center text-2xl font-bold`}>
+                  {viewMember.initials}
+                </div>
+                <div>
+                  <h4 className="font-bold text-xl text-foreground">{viewMember.firstName} {viewMember.lastName}</h4>
+                  <span className="px-2.5 py-1 mt-1 inline-block rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
+                    {viewMember.role}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1">Prénom</label>
+                    <p className="text-sm text-foreground font-medium">{viewMember.firstName || "Non renseigné"}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1">Nom</label>
+                    <p className="text-sm text-foreground font-medium">{viewMember.lastName || "Non renseigné"}</p>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1">Email</label>
+                  <p className="text-sm text-foreground font-medium">{viewMember.email}</p>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1">Téléphone</label>
+                  <p className="text-sm text-foreground font-medium">{viewMember.phone || "Non renseigné"}</p>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1">Statut</label>
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${viewMember.status === 'Actif' ? 'bg-emerald-500' : 'bg-destructive'}`}></span>
+                    <p className="text-sm text-foreground font-medium">{viewMember.status}</p>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1">Date d'ajout</label>
+                  <p className="text-sm text-foreground font-medium">{new Date(viewMember.joinedAt).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                </div>
+
+                <div className="pt-4 border-t border-border mt-4">
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-3">Sécurité</label>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Pour des raisons de sécurité, le mot de passe actuel n'est pas affichable (chiffré de bout en bout). Vous pouvez toutefois le réinitialiser.
+                  </p>
+                  
+                  {resetedPassword ? (
+                    <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 mb-2">
+                      <p className="text-xs font-bold mb-1">Nouveau mot de passe généré :</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <p className="font-mono text-lg font-bold break-all bg-emerald-500/20 p-2 rounded-lg text-center flex-1">{resetedPassword}</p>
+                        <button
+                          onClick={() => copyToClipboard(resetedPassword)}
+                          className="p-3 rounded-lg bg-emerald-500 text-white hover:opacity-90 transition-opacity shrink-0 flex items-center justify-center shadow-md shadow-emerald-500/20"
+                          title="Copier le mot de passe"
+                        >
+                          <Copy className="h-5 w-5" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => handleResetPassword(viewMember.id)}
+                      disabled={isResetting}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-destructive/10 text-destructive font-bold text-sm hover:bg-destructive hover:text-white transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                    >
+                      {isResetting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" /> Patientez...
+                        </>
+                      ) : (
+                        <>
+                          <Key className="h-4 w-4" /> Réinitialiser le mot de passe
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Create Modal Overlay */}
+      {isCreateOpen && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-0 sm:p-4">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setIsCreateOpen(false)} />
+          {/* Dialog */}
+          <div className="relative w-full sm:max-w-lg h-[100dvh] sm:h-auto sm:max-h-[92vh] bg-card border-0 sm:border border-border rounded-none sm:rounded-3xl shadow-2xl flex flex-col animate-in zoom-in-95 fade-in duration-200 overflow-hidden z-10">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
+              <h3 className="text-lg font-bold text-foreground">Créer un membre</h3>
+              <button
+                onClick={() => setIsCreateOpen(false)}
                 className="p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <form onSubmit={handleInvite} className="p-6 space-y-5">
+            <form onSubmit={handleCreate} className="p-6 space-y-5 overflow-y-auto">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-foreground block">Prénom</label>
+                  <input
+                    type="text"
+                    required
+                    value={createData.firstName}
+                    onChange={(e) => setCreateData({...createData, firstName: e.target.value})}
+                    placeholder="Jean"
+                    className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-foreground block">Nom</label>
+                  <input
+                    type="text"
+                    required
+                    value={createData.lastName}
+                    onChange={(e) => setCreateData({...createData, lastName: e.target.value})}
+                    placeholder="Dupont"
+                    className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all text-sm"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-foreground block">Adresse email</label>
                 <input
                   type="email"
                   required
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  placeholder="collegue@entreprise.com"
+                  value={createData.email}
+                  onChange={(e) => setCreateData({...createData, email: e.target.value})}
+                  placeholder="jean.dupont@entreprise.com"
+                  className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all text-sm"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground block">Numéro de téléphone (Optionnel)</label>
+                <input
+                  type="tel"
+                  value={createData.phone}
+                  onChange={(e) => setCreateData({...createData, phone: e.target.value})}
+                  placeholder="+33 6 12 34 56 78"
                   className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all text-sm"
                 />
               </div>
@@ -449,8 +680,8 @@ function TeamTab() {
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-foreground block">Rôle d'accès</label>
                 <select
-                  value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value)}
+                  value={createData.role}
+                  onChange={(e) => setCreateData({...createData, role: e.target.value})}
                   className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all text-sm appearance-none cursor-pointer"
                 >
                   <option value="Propriétaire">Propriétaire (Accès complet & admin)</option>
@@ -458,26 +689,66 @@ function TeamTab() {
                   <option value="Éditeur">Éditeur (Gestion du contenu)</option>
                 </select>
               </div>
+              
+              <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 mt-4">
+                <label className="text-xs font-bold text-primary block mb-2">Mot de passe généré (Temporaire)</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={createData.password}
+                    readOnly
+                    className="w-full px-4 py-2.5 rounded-lg bg-background border border-primary/30 font-mono text-center font-bold text-foreground focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    title="Copier le mot de passe"
+                    onClick={() => copyToClipboard(createData.password)}
+                    className="p-3 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 transition-colors shrink-0 flex items-center justify-center"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    title="Générer un autre mot de passe"
+                    onClick={() => setCreateData({ ...createData, password: generateRandomPassword() })}
+                    className="p-3 rounded-lg bg-primary text-white hover:opacity-90 transition-opacity shrink-0 shadow-md shadow-primary/20 flex items-center justify-center"
+                  >
+                    <Key className="h-4 w-4" />
+                  </button>
+                </div>
+                <p className="text-[10px] text-primary/80 mt-2">Ce mot de passe sera envoyé par email au membre lors de la création.</p>
+              </div>
 
               <div className="pt-2">
                 <button
                   type="submit"
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-primary/25"
+                  disabled={isCreating}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-primary/25 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  <Send className="h-4 w-4" />
-                  Envoyer l'invitation
+                  {isCreating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Création en cours...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="h-4 w-4" />
+                      Créer le compte
+                    </>
+                  )}
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Edit Role Modal Overlay */}
-      {editingMember && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      {editingMember && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-0 sm:p-4">
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setEditingMember(null)} />
-          <div className="relative bg-card border border-border rounded-3xl shadow-2xl w-full max-w-sm animate-in zoom-in-95 fade-in duration-200 overflow-hidden">
+          <div className="relative w-full sm:max-w-sm h-[100dvh] sm:h-auto sm:max-h-[92vh] bg-card border-0 sm:border border-border rounded-none sm:rounded-3xl shadow-2xl flex flex-col animate-in zoom-in-95 fade-in duration-200 overflow-hidden z-10">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
               <h3 className="text-lg font-bold text-foreground">Modifier le rôle</h3>
               <button
@@ -488,7 +759,7 @@ function TeamTab() {
               </button>
             </div>
 
-            <form onSubmit={handleUpdateRole} className="p-6 space-y-5">
+            <form onSubmit={handleUpdateRole} className="p-6 space-y-5 flex-1 overflow-y-auto">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-foreground block">Nouveau rôle pour {editingMember.email}</label>
                 <select
@@ -505,22 +776,31 @@ function TeamTab() {
               <div className="pt-2">
                 <button
                   type="submit"
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-primary/25"
+                  disabled={isUpdatingRole}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-primary/25 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  <Save className="h-4 w-4" />
-                  Sauvegarder
+                  {isUpdatingRole ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" /> Enregistrement...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" /> Sauvegarder
+                    </>
+                  )}
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Delete Confirmation Modal */}
-      {memberToDelete && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      {memberToDelete && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-0 sm:p-4">
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setMemberToDelete(null)} />
-          <div className="relative bg-card border border-border rounded-3xl shadow-2xl w-full max-w-sm animate-in zoom-in-95 fade-in duration-200 overflow-hidden">
+          <div className="relative w-full sm:max-w-sm h-auto bg-card border-0 sm:border border-border rounded-none sm:rounded-3xl shadow-2xl flex flex-col animate-in zoom-in-95 fade-in duration-200 overflow-hidden z-10">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-destructive/10">
               <h3 className="text-lg font-bold text-destructive">Supprimer ce membre</h3>
               <button onClick={() => setMemberToDelete(null)} className="p-2 rounded-full hover:bg-destructive/20 transition-colors text-destructive">
@@ -540,14 +820,17 @@ function TeamTab() {
                 </button>
                 <button
                   onClick={confirmDeleteMember}
-                  className="flex-1 py-3 rounded-xl bg-destructive text-destructive-foreground font-bold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-destructive/25"
+                  disabled={isDeleting}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-destructive text-destructive-foreground font-bold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-destructive/25 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
+                  {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   Supprimer
                 </button>
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

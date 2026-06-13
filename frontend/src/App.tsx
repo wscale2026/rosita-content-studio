@@ -8,7 +8,6 @@ import Content from "./pages/Content";
 import Settings from "./pages/Settings";
 import { useAuth } from "./hooks/useAuth";
 import Login from "./pages/auth/Login";
-import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import FrontOfficeApp from "@frontoffice/App";
@@ -97,7 +96,6 @@ export default function App() {
       <Route path="/success" element={<PaymentSuccess />} />
       <Route path="/cancel" element={<PaymentCancel />} />
       <Route path="/backoffice/login" element={<Login />} />
-      <Route path="/backoffice/register" element={<Register />} />
       <Route path="/backoffice/forgot-password" element={<ForgotPassword />} />
       <Route path="/backoffice/reset-password" element={<ResetPassword />} />
       <Route path="/backoffice/*" element={<ProtectedApp />} />

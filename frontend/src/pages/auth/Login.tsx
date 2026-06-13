@@ -158,10 +158,6 @@ export default function Login() {
         </button>
       </form>
 
-      <div className="mt-8 text-center text-sm text-muted-foreground">
-        Nouveau sur la plateforme ?{" "}
-        <Link to="/backoffice/register" className="text-primary font-bold hover:underline">Créer un compte</Link>
-      </div>
     </AuthContainer>
   );
 }
