@@ -136,5 +136,9 @@ coverage/
 *.temp
 *.bak
 
-#Videos
-frontend/public/videos/*.mp4
+#Videos (fichiers lourds - hébergés sur Cloudinary)
+frontend/public/videos/
+frontend/public/video/
+**/*.mp4
+**/*.webm
+**/*.mov
