@@ -145,7 +145,7 @@ class ClearProspectsView(APIView):
         return Response({"status": "success", "message": "Tous les prospects ont été supprimés."})
 
 class PaymentViewSet(viewsets.ModelViewSet):
-    queryset = Payment.objects.all().order_by('-created_at')
+    queryset = Payment.objects.select_related('prospect').all().order_by('-created_at')
     serializer_class = PaymentSerializer
     permission_classes = [IsStaffUser]
 
@@ -204,7 +204,7 @@ class DashboardStatsView(APIView):
                 "date_obj": p.created_at
             })
             
-        recent_payments = Payment.objects.filter(status='success').order_by('-created_at')[:5]
+        recent_payments = Payment.objects.select_related('prospect').filter(status='success').order_by('-created_at')[:5]
         for p in recent_payments:
             recent_activity.append({
                 "id": f"pay_{p.id}",
@@ -587,7 +587,7 @@ from rest_framework import viewsets
 
 class EmailLogViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAdminOrProprietaire]
-    queryset = EmailLog.objects.all().order_by('-sent_at')
+    queryset = EmailLog.objects.select_related('prospect').all().order_by('-sent_at')
     serializer_class = EmailLogSerializer
 
 class EmailStatsView(APIView):

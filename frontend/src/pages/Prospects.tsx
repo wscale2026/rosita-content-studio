@@ -9,6 +9,18 @@ import { getAuthHeaders, logoutUser } from "@/lib/auth";
 import { VercelConfirmModal } from "@/components/VercelConfirmModal";
 import { useAuth } from "@/hooks/useAuth";
 import { API_BASE_URL } from "@/lib/auth";
+import useSWR from "swr";
+
+const fetcher = (url: string) => fetch(url, { headers: getAuthHeaders() }).then(res => {
+  if (!res.ok) {
+    if (res.status === 401) {
+      logoutUser();
+      window.location.href = "/backoffice/login";
+    }
+    throw new Error("Network response was not ok");
+  }
+  return res.json();
+});
 
 
 type Status = "all" | "froid" | "chaud" | "cliente";
@@ -40,8 +52,7 @@ export default function Prospects() {
   const [emailProspectId, setEmailProspectId] = useState<number | null>(null);
   const [subject, setSubject]     = useState("");
   const [body, setBody]           = useState("");
-  const [prospects, setProspects] = useState<any[]>([]);
-  const [loading, setLoading]     = useState(true);
+  const { data: prospects = [], isLoading: loading, mutate } = useSWR(`${API_BASE_URL}/prospects/`, fetcher);
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
@@ -56,28 +67,7 @@ export default function Prospects() {
     toast.success(`Variable ${variable} insérée`, { duration: 2000 });
   };
 
-  useEffect(() => {
-    fetch(`${API_BASE_URL}/prospects/`, { headers: getAuthHeaders() })
-      .then(res => {
-        if (!res.ok) {
-          if (res.status === 401) {
-            logoutUser();
-            window.location.href = "/backoffice/login";
-          }
-          throw new Error("Network response was not ok");
-        }
-        return res.json();
-      })
-      .then(data => {
-        setProspects(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        toast.error("Erreur de chargement des prospects");
-        setLoading(false);
-      });
-  }, []);
+
 
   const filtered = prospects.filter((p) => {
     const matchStatus = status === "all" || p.status === status;
@@ -164,7 +154,7 @@ export default function Prospects() {
         headers: getAuthHeaders(),
       });
       if (!res.ok) throw new Error("Erreur");
-      setProspects([]);
+      mutate();
       toast.success("Tous les prospects ont été supprimés.", {
         style: { backgroundColor: '#10b981', color: 'white', border: 'none' },
       });
@@ -188,7 +178,7 @@ export default function Prospects() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Erreur lors de la suppression");
       }
-      setProspects(prev => prev.filter(p => p.id !== deleteProspectId));
+      mutate();
       toast.success("Prospect supprimé avec succès.", {
         style: { backgroundColor: '#10b981', color: 'white', border: 'none' },
       });

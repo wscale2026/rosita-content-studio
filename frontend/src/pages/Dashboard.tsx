@@ -13,11 +13,23 @@ import { getAuthHeaders, logoutUser } from "@/lib/auth";
 import { mockData } from "@/lib/mockData";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { API_BASE_URL } from "@/lib/auth";
+import useSWR from "swr";
+
+const fetcher = (url: string) => fetch(url, { headers: getAuthHeaders() }).then(res => {
+  if (!res.ok) {
+    if (res.status === 401) {
+      logoutUser();
+      window.location.href = "/backoffice/login";
+    }
+    throw new Error("Network response was not ok");
+  }
+  return res.json();
+});
 
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [stats, setStats] = useState({
+  const { data: stats = {
     totalRevenue: 0,
     totalProspects: 0,
     conversionRate: 0,
@@ -25,23 +37,7 @@ export default function Dashboard() {
     sourceDistribution: [],
     leadsEvolution: [],
     recentActivity: []
-  });
-
-  useEffect(() => {
-    fetch(`${API_BASE_URL}/dashboard/stats/`, { headers: getAuthHeaders() })
-      .then(res => {
-        if (!res.ok) {
-          if (res.status === 401) {
-            logoutUser();
-            window.location.href = "/backoffice/login";
-          }
-          throw new Error("Network response was not ok");
-        }
-        return res.json();
-      })
-      .then(data => setStats(data))
-      .catch(err => console.error("Error loading dashboard stats:", err));
-  }, []);
+  } } = useSWR(`${API_BASE_URL}/dashboard/stats/`, fetcher);
 
   const { dashboard } = mockData;
 

@@ -5,43 +5,28 @@ import { Banknote, TrendingUp, Download, ExternalLink, RefreshCw, CheckCircle2, 
 import { VercelConfirmModal } from "@/components/VercelConfirmModal";
 import { useAuth } from "@/hooks/useAuth";
 import { API_BASE_URL } from "@/lib/auth";
+import useSWR from "swr";
+
+const fetcher = (url: string) => fetch(url, { headers: getAuthHeaders() }).then(res => {
+  if (!res.ok) {
+    if (res.status === 401) {
+      logoutUser();
+      window.location.href = "/backoffice/login";
+    }
+    throw new Error("Network response was not ok");
+  }
+  return res.json();
+});
 
 
 export default function Payments() {
   const { isSuperadmin } = useAuth();
-  const [payments, setPayments] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: payments = [], isLoading: loading, mutate, isValidating: isRefreshing } = useSWR(`${API_BASE_URL}/payments/`, fetcher);
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletePaymentId, setDeletePaymentId] = useState<number | null>(null);
   const [isDeletingPayment, setIsDeletingPayment] = useState(false);
-
-  const loadPayments = async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/payments/`, { headers: getAuthHeaders() });
-      if (!res.ok) {
-        if (res.status === 401) {
-          logoutUser();
-          window.location.href = "/backoffice/login";
-        }
-        throw new Error("Network response was not ok");
-      }
-      const data = await res.json();
-      setPayments(data);
-    } catch (err) {
-      console.error(err);
-      toast.error("Erreur de chargement des paiements");
-    } finally {
-      setLoading(false);
-      setIsRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    loadPayments();
-  }, []);
 
   const totalRevenue = payments.filter(p => p.status === "success").reduce((s, p) => s + parseFloat(p.amount), 0);
   const confirmed = payments.filter(p => p.status === "success").length;
@@ -54,7 +39,7 @@ export default function Payments() {
         headers: getAuthHeaders(),
       });
       if (!res.ok) throw new Error("Erreur");
-      setPayments([]);
+      mutate();
       toast.success("Tous les paiements ont été supprimés.", {
         style: { backgroundColor: '#10b981', color: 'white', border: 'none' },
       });
@@ -78,7 +63,7 @@ export default function Payments() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Erreur lors de la suppression");
       }
-      setPayments(prev => prev.filter(p => p.id !== deletePaymentId));
+      mutate();
       toast.success("Paiement supprimé avec succès.", {
         style: { backgroundColor: '#10b981', color: 'white', border: 'none' },
       });
@@ -92,8 +77,7 @@ export default function Payments() {
   };
 
   const handleRefresh = () => {
-    setIsRefreshing(true);
-    loadPayments();
+    mutate();
   };
 
   const handleExportCSV = () => {
