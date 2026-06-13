@@ -9,7 +9,7 @@ export const mockData = {
       { id: 2, type: "email", title: "Email envoyé", description: "Séquence J+14 envoyée à 45 prospects", time: "Il y a 2 heures" },
       { id: 3, type: "prospect", title: "Nouveau prospect chaud", description: "Koffi a téléchargé les 2 guides", time: "Il y a 4 heures" },
       { id: 4, type: "sale", title: "Nouvelle vente", description: "Sarah a acheté la Masterclass", time: "Hier" },
-      { id: 5, type: "prospect", title: "Rosita a modifié un prospect", description: "Mise à jour du statut de Marie", time: "Hier" },
+      { id: 5, type: "prospect", title: "Rosyta a modifié un prospect", description: "Mise à jour du statut de Marie", time: "Hier" },
     ],
     chartData: Array.from({ length: 30 }).map((_, i) => ({
       name: `Jour ${i + 1}`,
@@ -38,7 +38,7 @@ export const mockData = {
       { day: 7, title: "Histoire de Sarah", description: "Comment Sarah a percé sur TikTok." },
       { day: 14, title: "Conseil TikTok", description: "L'erreur #1 qui tue votre reach." },
       { day: 21, title: "Témoignage Aïssatou", description: "De 0 à 10k abonnés en 1 mois." },
-      { day: 28, title: "Trouver ses 8 histoires", description: "Méthode exclusive Rosita." },
+      { day: 28, title: "Trouver ses 8 histoires", description: "Méthode exclusive Rosyta." },
       { day: 35, title: "Koffi, 8000 CFA de ventes", description: "Étude de cas monétisation." },
       { day: 42, title: "Invitation appel découverte", description: "Filtre pour le Mentorship VIP." },
       { day: 49, title: "Séquence hebdo (1/6)", description: "Contenu de valeur hebdomadaire." },
@@ -58,8 +58,8 @@ export const mockData = {
   ],
   securityLogs: [
     { id: 1, action: "Connexion réussie", user: "Admin Dev", ip: "192.168.1.1", time: "Il y a 2 min" },
-    { id: 2, action: "Modification de prospect", user: "Rosita", ip: "10.0.0.5", time: "Hier à 15:30" },
+    { id: 2, action: "Modification de prospect", user: "Rosyta", ip: "10.0.0.5", time: "Hier à 15:30" },
     { id: 3, action: "Export de données", user: "Admin Dev", ip: "192.168.1.1", time: "Hier à 10:15" },
-    { id: 4, action: "Nouvel utilisateur invité", user: "Rosita", ip: "10.0.0.5", time: "Il y a 3 jours" },
+    { id: 4, action: "Nouvel utilisateur invité", user: "Rosyta", ip: "10.0.0.5", time: "Il y a 3 jours" },
   ]
 };

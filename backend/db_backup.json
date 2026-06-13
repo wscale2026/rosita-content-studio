@@ -1,0 +1,716 @@
+[
+{
+    "model": "core.user",
+    "fields": {
+        "password": "pbkdf2_sha256$1200000$pQ9ehSFbzs2YNWvsGAuidW$uNYfUD9jFd3CM3zOeE1QJYYwBdaz8ffF4kFMpvhn3wM=",
+        "last_login": null,
+        "is_superuser": true,
+        "username": "admin",
+        "first_name": "",
+        "last_name": "",
+        "email": "hackdumping@gmail.com",
+        "is_staff": true,
+        "is_active": true,
+        "date_joined": "2026-06-11T18:39:50.755Z",
+        "phone": null,
+        "role": "superadmin",
+        "groups": [],
+        "user_permissions": []
+    }
+},
+{
+    "model": "core.user",
+    "fields": {
+        "password": "pbkdf2_sha256$1200000$acwKw68JHblwlTk2aMzFx9$GNORmy7MAVMXtFpKGcLa3VvgR4QVSuIKZA80DGcqQr0=",
+        "last_login": null,
+        "is_superuser": false,
+        "username": "ultimate.technology.cm@gmail.com",
+        "first_name": "dumping",
+        "last_name": "hack",
+        "email": "ultimate.technology.cm@gmail.com",
+        "is_staff": true,
+        "is_active": true,
+        "date_joined": "2026-06-13T03:44:44.014Z",
+        "phone": "",
+        "role": "editeur",
+        "groups": [],
+        "user_permissions": []
+    }
+},
+{
+    "model": "core.prospect",
+    "pk": 1,
+    "fields": {
+        "first_name": "Jean",
+        "last_name": "Dupont",
+        "email": "jean.dupont@example.com",
+        "phone": "0601020304",
+        "source": "TikTok",
+        "status": "cliente",
+        "created_at": "2026-06-11T19:10:57.886Z"
+    }
+},
+{
+    "model": "core.prospect",
+    "pk": 2,
+    "fields": {
+        "first_name": "ERIC WILFRIED",
+        "last_name": "TCHOUPE TAKAM",
+        "email": "erictchoupe5@gmail.com",
+        "phone": "+237654549701",
+        "source": "Facebook",
+        "status": "chaud",
+        "created_at": "2026-06-11T19:15:49.451Z"
+    }
+},
+{
+    "model": "core.prospect",
+    "pk": 6,
+    "fields": {
+        "first_name": "John",
+        "last_name": "Doe",
+        "email": "testuser@example.com",
+        "phone": "+22501020304",
+        "source": "",
+        "status": "chaud",
+        "created_at": "2026-06-12T15:02:33.116Z"
+    }
+},
+{
+    "model": "core.prospect",
+    "pk": 7,
+    "fields": {
+        "first_name": "dumping",
+        "last_name": "dumping",
+        "email": "dumpingdumping2005@gmail.com",
+        "phone": "678544332",
+        "source": "Lead Magnet",
+        "status": "froid",
+        "created_at": "2026-06-12T15:26:43.312Z"
+    }
+},
+{
+    "model": "core.payment",
+    "pk": 1,
+    "fields": {
+        "prospect": 1,
+        "amount": "25000.00",
+        "currency": "XAF",
+        "status": "success",
+        "offer_type": "guide",
+        "reference": "TX-E07C20D380",
+        "geniuspay_id": "7931",
+        "created_at": "2026-06-11T19:13:01.159Z"
+    }
+},
+{
+    "model": "core.payment",
+    "pk": 2,
+    "fields": {
+        "prospect": 2,
+        "amount": "150000.00",
+        "currency": "XAF",
+        "status": "pending",
+        "offer_type": "mentorship",
+        "reference": "TX-069CDB64FC",
+        "geniuspay_id": "7932",
+        "created_at": "2026-06-11T19:15:49.490Z"
+    }
+},
+{
+    "model": "core.payment",
+    "pk": 3,
+    "fields": {
+        "prospect": 2,
+        "amount": "350000.00",
+        "currency": "XAF",
+        "status": "pending",
+        "offer_type": "mentorship",
+        "reference": "TX-C966102E50",
+        "geniuspay_id": null,
+        "created_at": "2026-06-11T20:10:09.772Z"
+    }
+},
+{
+    "model": "core.payment",
+    "pk": 5,
+    "fields": {
+        "prospect": 2,
+        "amount": "350000.00",
+        "currency": "XAF",
+        "status": "pending",
+        "offer_type": "mentorship",
+        "reference": "TX-C5253815ED",
+        "geniuspay_id": "7934",
+        "created_at": "2026-06-11T20:23:24.719Z"
+    }
+},
+{
+    "model": "core.payment",
+    "pk": 8,
+    "fields": {
+        "prospect": 2,
+        "amount": "500000.00",
+        "currency": "XAF",
+        "status": "pending",
+        "offer_type": "gestion",
+        "reference": "TX-51445F88D6",
+        "geniuspay_id": "7937",
+        "created_at": "2026-06-11T20:34:15.408Z"
+    }
+},
+{
+    "model": "core.payment",
+    "pk": 9,
+    "fields": {
+        "prospect": 2,
+        "amount": "500000.00",
+        "currency": "XAF",
+        "status": "pending",
+        "offer_type": "gestion",
+        "reference": "TX-EAFBA6F484",
+        "geniuspay_id": "7967",
+        "created_at": "2026-06-12T09:55:21.256Z"
+    }
+},
+{
+    "model": "core.payment",
+    "pk": 10,
+    "fields": {
+        "prospect": 2,
+        "amount": "500000.00",
+        "currency": "XAF",
+        "status": "pending",
+        "offer_type": "gestion",
+        "reference": "TX-C8AA3F82A9",
+        "geniuspay_id": "7968",
+        "created_at": "2026-06-12T10:15:32.951Z"
+    }
+},
+{
+    "model": "core.payment",
+    "pk": 11,
+    "fields": {
+        "prospect": 2,
+        "amount": "350000.00",
+        "currency": "XAF",
+        "status": "pending",
+        "offer_type": "mentorship",
+        "reference": "TX-F071147506",
+        "geniuspay_id": "7975",
+        "created_at": "2026-06-12T13:16:10.948Z"
+    }
+},
+{
+    "model": "core.payment",
+    "pk": 12,
+    "fields": {
+        "prospect": 2,
+        "amount": "500000.00",
+        "currency": "XAF",
+        "status": "pending",
+        "offer_type": "gestion",
+        "reference": "TX-6D8F51E338",
+        "geniuspay_id": "6730",
+        "created_at": "2026-06-12T14:08:37.772Z"
+    }
+},
+{
+    "model": "core.payment",
+    "pk": 13,
+    "fields": {
+        "prospect": 2,
+        "amount": "500000.00",
+        "currency": "XAF",
+        "status": "pending",
+        "offer_type": "gestion",
+        "reference": "TX-C302283F0B",
+        "geniuspay_id": "7978",
+        "created_at": "2026-06-12T14:32:04.070Z"
+    }
+},
+{
+    "model": "core.payment",
+    "pk": 14,
+    "fields": {
+        "prospect": 2,
+        "amount": "350000.00",
+        "currency": "XAF",
+        "status": "pending",
+        "offer_type": "mentorship",
+        "reference": "TX-C1D3DB91DC",
+        "geniuspay_id": "7979",
+        "created_at": "2026-06-12T14:32:47.228Z"
+    }
+},
+{
+    "model": "core.payment",
+    "pk": 15,
+    "fields": {
+        "prospect": 2,
+        "amount": "350000.00",
+        "currency": "XAF",
+        "status": "pending",
+        "offer_type": "mentorship",
+        "reference": "TX-D3030D2526",
+        "geniuspay_id": "7980",
+        "created_at": "2026-06-12T14:33:23.899Z"
+    }
+},
+{
+    "model": "core.payment",
+    "pk": 18,
+    "fields": {
+        "prospect": 2,
+        "amount": "500000.00",
+        "currency": "XAF",
+        "status": "pending",
+        "offer_type": "gestion",
+        "reference": "TX-A4DA08D5DA",
+        "geniuspay_id": "7983",
+        "created_at": "2026-06-12T14:45:24.215Z"
+    }
+},
+{
+    "model": "core.payment",
+    "pk": 19,
+    "fields": {
+        "prospect": 2,
+        "amount": "500000.00",
+        "currency": "XAF",
+        "status": "pending",
+        "offer_type": "gestion",
+        "reference": "TX-3FEFC7D907",
+        "geniuspay_id": "7984",
+        "created_at": "2026-06-12T14:46:26.478Z"
+    }
+},
+{
+    "model": "core.payment",
+    "pk": 20,
+    "fields": {
+        "prospect": 2,
+        "amount": "350000.00",
+        "currency": "XAF",
+        "status": "pending",
+        "offer_type": "mentorship",
+        "reference": "TX-1A5EE34ECE",
+        "geniuspay_id": "7985",
+        "created_at": "2026-06-12T14:48:40.230Z"
+    }
+},
+{
+    "model": "core.payment",
+    "pk": 21,
+    "fields": {
+        "prospect": 2,
+        "amount": "500000.00",
+        "currency": "XAF",
+        "status": "pending",
+        "offer_type": "gestion",
+        "reference": "TX-40363E8683",
+        "geniuspay_id": "7986",
+        "created_at": "2026-06-12T14:52:04.823Z"
+    }
+},
+{
+    "model": "core.payment",
+    "pk": 22,
+    "fields": {
+        "prospect": 2,
+        "amount": "500000.00",
+        "currency": "XAF",
+        "status": "pending",
+        "offer_type": "gestion",
+        "reference": "TX-273563FFEC",
+        "geniuspay_id": "7987",
+        "created_at": "2026-06-12T14:54:44.985Z"
+    }
+},
+{
+    "model": "core.payment",
+    "pk": 23,
+    "fields": {
+        "prospect": 2,
+        "amount": "500000.00",
+        "currency": "XAF",
+        "status": "pending",
+        "offer_type": "gestion",
+        "reference": "TX-04175D6EFD",
+        "geniuspay_id": null,
+        "created_at": "2026-06-12T15:01:04.151Z"
+    }
+},
+{
+    "model": "core.payment",
+    "pk": 24,
+    "fields": {
+        "prospect": 2,
+        "amount": "500000.00",
+        "currency": "XAF",
+        "status": "pending",
+        "offer_type": "gestion",
+        "reference": "TX-64DDDF67CF",
+        "geniuspay_id": null,
+        "created_at": "2026-06-12T15:01:15.591Z"
+    }
+},
+{
+    "model": "core.payment",
+    "pk": 25,
+    "fields": {
+        "prospect": 6,
+        "amount": "25000.00",
+        "currency": "XAF",
+        "status": "pending",
+        "offer_type": "guide",
+        "reference": "TX-D9880E7041",
+        "geniuspay_id": null,
+        "created_at": "2026-06-12T15:02:33.133Z"
+    }
+},
+{
+    "model": "core.payment",
+    "pk": 26,
+    "fields": {
+        "prospect": 2,
+        "amount": "500000.00",
+        "currency": "XAF",
+        "status": "pending",
+        "offer_type": "gestion",
+        "reference": "TX-29C4DF9FE2",
+        "geniuspay_id": null,
+        "created_at": "2026-06-12T15:02:57.759Z"
+    }
+},
+{
+    "model": "core.payment",
+    "pk": 27,
+    "fields": {
+        "prospect": 2,
+        "amount": "500000.00",
+        "currency": "XAF",
+        "status": "failed",
+        "offer_type": "gestion",
+        "reference": "TX-C4F820BCA9",
+        "geniuspay_id": null,
+        "created_at": "2026-06-12T15:04:30.905Z"
+    }
+},
+{
+    "model": "core.payment",
+    "pk": 28,
+    "fields": {
+        "prospect": 2,
+        "amount": "500000.00",
+        "currency": "XAF",
+        "status": "failed",
+        "offer_type": "gestion",
+        "reference": "TX-CEA343C180",
+        "geniuspay_id": null,
+        "created_at": "2026-06-12T15:11:37.986Z"
+    }
+},
+{
+    "model": "core.payment",
+    "pk": 29,
+    "fields": {
+        "prospect": 2,
+        "amount": "500000.00",
+        "currency": "XAF",
+        "status": "failed",
+        "offer_type": "gestion",
+        "reference": "TX-ABC69895D6",
+        "geniuspay_id": null,
+        "created_at": "2026-06-12T15:12:47.116Z"
+    }
+},
+{
+    "model": "core.emaillog",
+    "pk": 1,
+    "fields": {
+        "prospect": 2,
+        "subject": "Finalisez votre inscription dès maintenant ! 🚀",
+        "body": "Bonjour ERIC WILFRIED TCHOUPE TAKAM,\n\nVous y êtes presque ! Ne laissez pas passer cette opportunité. Finalisez votre paiement dès aujourd'hui pour accéder immédiatement à votre plateforme et commencer l'aventure.\n\nCordialement,",
+        "type": "manual",
+        "tracking_id": "9493140e-795b-4243-828c-9420267ec598",
+        "opened": false,
+        "open_count": 0,
+        "sent_at": "2026-06-12T13:18:44.518Z"
+    }
+},
+{
+    "model": "core.contentresource",
+    "pk": 1,
+    "fields": {
+        "title": "FREE-COMMENT DÉVELOPPER TES HISTOIRES EN SCRIPTS TIKTOK",
+        "file": "resources/FREE-COMMENT_DÉVELOPPER_TES_HISTOIRES_EN_SCRIPTS_TIKTOK.pdf",
+        "size": "1.1 MB",
+        "downloads": 1,
+        "is_lead_magnet": true,
+        "uploaded_at": "2026-06-12T12:29:53.105Z"
+    }
+},
+{
+    "model": "core.contentresource",
+    "pk": 2,
+    "fields": {
+        "title": "FREE- FEUILLE DE TRAVAIL POUR TROUVER TES 8 HISTOIRES",
+        "file": "resources/FREE-_FEUILLE_DE_TRAVAIL_POUR_TROUVER_TES_8_HISTOIRES.pdf",
+        "size": "1.5 MB",
+        "downloads": 0,
+        "is_lead_magnet": true,
+        "uploaded_at": "2026-06-12T12:30:02.676Z"
+    }
+},
+{
+    "model": "core.usersettings",
+    "pk": 1,
+    "fields": {
+        "user": [
+            "admin"
+        ],
+        "auto_logout": true,
+        "two_factor_auth": false
+    }
+},
+{
+    "model": "core.usersettings",
+    "pk": 2,
+    "fields": {
+        "user": [
+            "ultimate.technology.cm@gmail.com"
+        ],
+        "auto_logout": true,
+        "two_factor_auth": false
+    }
+},
+{
+    "model": "core.securitylog",
+    "pk": 1,
+    "fields": {
+        "user": [
+            "admin"
+        ],
+        "action": "Paramètres de sécurité modifiés",
+        "ip_address": "127.0.0.1",
+        "created_at": "2026-06-12T12:41:15.473Z"
+    }
+},
+{
+    "model": "core.securitylog",
+    "pk": 2,
+    "fields": {
+        "user": [
+            "admin"
+        ],
+        "action": "Paramètres de sécurité modifiés",
+        "ip_address": "127.0.0.1",
+        "created_at": "2026-06-12T12:41:16.543Z"
+    }
+},
+{
+    "model": "core.securitylog",
+    "pk": 3,
+    "fields": {
+        "user": [
+            "admin"
+        ],
+        "action": "Paramètres de sécurité modifiés",
+        "ip_address": "127.0.0.1",
+        "created_at": "2026-06-12T12:41:17.322Z"
+    }
+},
+{
+    "model": "core.securitylog",
+    "pk": 4,
+    "fields": {
+        "user": [
+            "admin"
+        ],
+        "action": "Paramètres de sécurité modifiés",
+        "ip_address": "127.0.0.1",
+        "created_at": "2026-06-12T12:41:18.091Z"
+    }
+},
+{
+    "model": "core.securitylog",
+    "pk": 5,
+    "fields": {
+        "user": [
+            "admin"
+        ],
+        "action": "Paramètres de sécurité modifiés",
+        "ip_address": "127.0.0.1",
+        "created_at": "2026-06-12T12:41:20.184Z"
+    }
+},
+{
+    "model": "core.securitylog",
+    "pk": 6,
+    "fields": {
+        "user": [
+            "admin"
+        ],
+        "action": "Paramètres de sécurité modifiés",
+        "ip_address": "127.0.0.1",
+        "created_at": "2026-06-12T12:41:31.505Z"
+    }
+},
+{
+    "model": "core.securitylog",
+    "pk": 7,
+    "fields": {
+        "user": [
+            "admin"
+        ],
+        "action": "Connexion réussie",
+        "ip_address": "127.0.0.1",
+        "created_at": "2026-06-12T15:29:13.485Z"
+    }
+},
+{
+    "model": "core.securitylog",
+    "pk": 9,
+    "fields": {
+        "user": [
+            "admin"
+        ],
+        "action": "Connexion réussie",
+        "ip_address": "127.0.0.1",
+        "created_at": "2026-06-12T15:40:52.712Z"
+    }
+},
+{
+    "model": "core.securitylog",
+    "pk": 10,
+    "fields": {
+        "user": [
+            "admin"
+        ],
+        "action": "Paramètres de sécurité modifiés",
+        "ip_address": "127.0.0.1",
+        "created_at": "2026-06-13T01:23:42.138Z"
+    }
+},
+{
+    "model": "core.securitylog",
+    "pk": 11,
+    "fields": {
+        "user": [
+            "admin"
+        ],
+        "action": "Paramètres de sécurité modifiés",
+        "ip_address": "127.0.0.1",
+        "created_at": "2026-06-13T01:23:42.877Z"
+    }
+},
+{
+    "model": "core.securitylog",
+    "pk": 12,
+    "fields": {
+        "user": [
+            "admin"
+        ],
+        "action": "Paramètres de sécurité modifiés",
+        "ip_address": "127.0.0.1",
+        "created_at": "2026-06-13T01:23:44.299Z"
+    }
+},
+{
+    "model": "core.securitylog",
+    "pk": 13,
+    "fields": {
+        "user": [
+            "admin"
+        ],
+        "action": "Paramètres de sécurité modifiés",
+        "ip_address": "127.0.0.1",
+        "created_at": "2026-06-13T01:23:44.989Z"
+    }
+},
+{
+    "model": "core.securitylog",
+    "pk": 14,
+    "fields": {
+        "user": [
+            "admin"
+        ],
+        "action": "Connexion réussie",
+        "ip_address": "127.0.0.1",
+        "created_at": "2026-06-13T01:24:53.865Z"
+    }
+},
+{
+    "model": "core.securitylog",
+    "pk": 15,
+    "fields": {
+        "user": [
+            "admin"
+        ],
+        "action": "Connexion réussie",
+        "ip_address": "127.0.0.1",
+        "created_at": "2026-06-13T03:13:02.720Z"
+    }
+},
+{
+    "model": "core.securitylog",
+    "pk": 18,
+    "fields": {
+        "user": [
+            "admin"
+        ],
+        "action": "Connexion réussie",
+        "ip_address": "127.0.0.1",
+        "created_at": "2026-06-13T03:31:16.483Z"
+    }
+},
+{
+    "model": "core.securitylog",
+    "pk": 19,
+    "fields": {
+        "user": [
+            "admin"
+        ],
+        "action": "Connexion réussie",
+        "ip_address": "127.0.0.1",
+        "created_at": "2026-06-13T03:41:25.659Z"
+    }
+},
+{
+    "model": "core.securitylog",
+    "pk": 20,
+    "fields": {
+        "user": [
+            "ultimate.technology.cm@gmail.com"
+        ],
+        "action": "Connexion réussie",
+        "ip_address": "127.0.0.1",
+        "created_at": "2026-06-13T03:44:57.608Z"
+    }
+},
+{
+    "model": "core.securitylog",
+    "pk": 21,
+    "fields": {
+        "user": [
+            "ultimate.technology.cm@gmail.com"
+        ],
+        "action": "Connexion réussie",
+        "ip_address": "127.0.0.1",
+        "created_at": "2026-06-13T03:49:14.524Z"
+    }
+},
+{
+    "model": "core.securitylog",
+    "pk": 22,
+    "fields": {
+        "user": [
+            "ultimate.technology.cm@gmail.com"
+        ],
+        "action": "Connexion réussie",
+        "ip_address": "127.0.0.1",
+        "created_at": "2026-06-13T03:51:49.036Z"
+    }
+}
+]

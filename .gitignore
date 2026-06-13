@@ -1,0 +1,137 @@
+# ============================================================
+# ROSYTA CONTENT STUDIO — .gitignore
+# ============================================================
+
+# -------------------------------------------------------
+# SECRETS & VARIABLES D'ENVIRONNEMENT (NE JAMAIS COMMIT)
+# -------------------------------------------------------
+.env
+.env.*
+# !.env.example        # Garder uniquement le fichier exemple
+*.secret
+secrets.json
+
+# -------------------------------------------------------
+# BACKEND DJANGO
+# -------------------------------------------------------
+
+# Base de données locale SQLite
+backend/db.sqlite3
+backend/*.sqlite3
+
+# Environnement virtuel Python
+backend/venv/
+backend/.venv/
+backend/env/
+
+# Cache Python
+backend/**/__pycache__/
+backend/**/*.py[cod]
+backend/**/*.pyo
+backend/**/*$py.class
+*.pyc
+
+# Fichiers de migration compilés (garder les migrations)
+# backend/**/migrations/*.py  <-- NE PAS ignorer les migrations
+
+# Fichiers statiques collectés (générés par collectstatic)
+backend/staticfiles/
+
+# Fichiers médias uploadés par les utilisateurs
+backend/media/
+
+# Logs Django
+backend/*.log
+
+# Fichiers de distribution Python
+backend/*.egg-info/
+backend/dist/
+backend/build/
+
+# Pytest / Coverage
+backend/.pytest_cache/
+backend/.coverage
+backend/htmlcov/
+
+# -------------------------------------------------------
+# FRONTEND REACT / VITE
+# -------------------------------------------------------
+
+# Dépendances Node
+frontend/node_modules/
+frontend/src/frontoffice/node_modules/
+
+# Build de production (généré par npm run build)
+frontend/dist/
+frontend/build/
+
+# Cache Vite
+frontend/.vite/
+frontend/**/.vite/
+
+# Fichiers TypeScript compilés
+frontend/**/*.js.map
+frontend/**/*.d.ts.map
+
+# Cache ESLint
+frontend/.eslintcache
+
+# Logs npm/yarn
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# -------------------------------------------------------
+# SYSTÈME D'EXPLOITATION
+# -------------------------------------------------------
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# -------------------------------------------------------
+# ÉDITEURS & IDES
+# -------------------------------------------------------
+
+# VSCode (garder les settings partagés si besoin)
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# JetBrains (PyCharm, WebStorm...)
+.idea/
+*.iml
+*.iws
+
+# Vim / Emacs
+*.swp
+*.swo
+*~
+\#*\#
+
+# -------------------------------------------------------
+# OUTILS DE DÉVELOPPEMENT
+# -------------------------------------------------------
+
+# Ngrok (tunnel local)
+ngrok.yml
+
+# Coverage reports
+coverage/
+*.lcov
+
+# Temporary files
+*.tmp
+*.temp
+*.bak

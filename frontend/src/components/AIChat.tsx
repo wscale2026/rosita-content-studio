@@ -1,4 +1,3 @@
-import { trpc } from "@/providers/trpc";
 import { useState, useRef, useEffect } from "react";
 import {
   Sparkles,
@@ -24,14 +23,21 @@ export function AIChat({ open, onClose }: AIChatProps) {
     {
       role: "assistant",
       content:
-        "Salut ! Je suis ton assistant IA pour Rosita Content Studio. Je peux t'aider avec tes prospects, ta stratégie de contenu, ou répondre à tes questions business. Comment puis-je t'aider aujourd'hui ?",
+        "Salut ! Je suis ton assistant IA pour Rosyta Content Studio. Je peux t'aider avec tes prospects, ta stratégie de contenu, ou répondre à tes questions business. Comment puis-je t'aider aujourd'hui ?",
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const sendMutation = trpc.chat.send.useMutation();
+  // Mock AI responses for frontend-only mode
+  const mockResponses = [
+    "C'est une excellente question ! Pour améliorer ton taux de conversion, concentre-toi sur la personnalisation de tes emails.",
+    "Je te recommande d'analyser tes prospects les plus engagés en premier. Filtre par statut 'Chaud' pour commencer.",
+    "Pour ta stratégie de contenu, vise 3 publications par semaine avec des visuels de qualité et des CTA clairs.",
+    "Pense à segmenter ta liste de prospects par secteur d'activité pour des campagnes plus ciblées et efficaces.",
+    "Le meilleur moment pour envoyer tes emails est entre 9h et 11h le mardi ou le jeudi selon les études.",
+  ];
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -52,8 +58,10 @@ export function AIChat({ open, onClose }: AIChatProps) {
     setIsLoading(true);
 
     try {
-      const result = await sendMutation.mutateAsync({ message: userMsg });
-      setMessages((prev) => [...prev, { role: "assistant", content: result.response }]);
+      // Frontend-only mode: return a mock AI response
+      await new Promise((r) => setTimeout(r, 900 + Math.random() * 600));
+      const response = mockResponses[Math.floor(Math.random() * mockResponses.length)];
+      setMessages((prev) => [...prev, { role: "assistant", content: response }]);
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -77,11 +85,11 @@ export function AIChat({ open, onClose }: AIChatProps) {
   if (!open) return null;
 
   return (
-    <div className="fixed right-4 bottom-4 w-96 h-[500px] bg-white rounded-2xl shadow-2xl border border-[#E7E0EC] flex flex-col overflow-hidden z-[100] animate-in slide-in-from-bottom-4 fade-in duration-300">
+    <div className="fixed right-4 bottom-4 w-96 h-[500px] bg-card rounded-2xl shadow-2xl border border-border flex flex-col overflow-hidden z-[100] animate-in slide-in-from-bottom-4 fade-in duration-300">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-[#6750A4] text-white">
+      <div className="flex items-center justify-between px-4 py-3 bg-primary text-primary-foreground">
         <div className="flex items-center gap-2">
-          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/20">
+          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary-foreground/20">
             <Compass className="h-4 w-4" />
           </div>
           <div>
@@ -114,36 +122,36 @@ export function AIChat({ open, onClose }: AIChatProps) {
             className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
           >
             {msg.role === "assistant" && (
-              <div className="flex-shrink-0 w-7 h-7 rounded-full bg-[#EADDFF] flex items-center justify-center mt-1">
-                <Sparkles className="h-3.5 w-3.5 text-[#6750A4]" />
+              <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center mt-1">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
               </div>
             )}
             <div
               className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${
                 msg.role === "user"
-                  ? "bg-[#6750A4] text-white rounded-br-sm"
-                  : "bg-[#FEF7FF] text-[#1C1B1F] border border-[#E7E0EC] rounded-bl-sm"
+                  ? "bg-primary text-primary-foreground rounded-br-sm shadow-sm"
+                  : "bg-muted text-foreground border border-border rounded-bl-sm shadow-sm"
               }`}
             >
               {msg.content}
             </div>
             {msg.role === "user" && (
-              <div className="flex-shrink-0 w-7 h-7 rounded-full bg-[#6750A4] flex items-center justify-center mt-1">
-                <Diamond className="h-3.5 w-3.5 text-white" />
+              <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary flex items-center justify-center mt-1 shadow-sm">
+                <Diamond className="h-3.5 w-3.5 text-primary-foreground" />
               </div>
             )}
           </div>
         ))}
         {isLoading && (
           <div className="flex gap-2 justify-start">
-            <div className="flex-shrink-0 w-7 h-7 rounded-full bg-[#EADDFF] flex items-center justify-center mt-1">
-              <Sparkles className="h-3.5 w-3.5 text-[#6750A4] animate-spin" />
+            <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center mt-1">
+              <Sparkles className="h-3.5 w-3.5 text-primary animate-spin" />
             </div>
-            <div className="bg-[#FEF7FF] border border-[#E7E0EC] rounded-2xl rounded-bl-sm px-4 py-3">
+            <div className="bg-muted border border-border rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
               <div className="flex gap-1">
-                <div className="w-2 h-2 rounded-full bg-[#6750A4] animate-bounce" style={{ animationDelay: "0ms" }} />
-                <div className="w-2 h-2 rounded-full bg-[#6750A4] animate-bounce" style={{ animationDelay: "150ms" }} />
-                <div className="w-2 h-2 rounded-full bg-[#6750A4] animate-bounce" style={{ animationDelay: "300ms" }} />
+                <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
+                <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
+                <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
               </div>
             </div>
           </div>
@@ -152,7 +160,7 @@ export function AIChat({ open, onClose }: AIChatProps) {
       </div>
 
       {/* Input */}
-      <div className="px-4 py-3 border-t border-[#E7E0EC] bg-white">
+      <div className="px-4 py-3 border-t border-border bg-card">
         <div className="flex items-center gap-2">
           <input
             ref={inputRef}
@@ -161,7 +169,7 @@ export function AIChat({ open, onClose }: AIChatProps) {
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Pose ta question..."
-            className="flex-1 px-4 py-2.5 rounded-xl bg-[#FEF7FF] border border-[#E7E0EC] text-sm text-[#1C1B1F] placeholder:text-[#49454F]/60 focus:outline-none focus:border-[#6750A4] focus:ring-1 focus:ring-[#6750A4]/20 transition-all"
+            className="flex-1 px-4 py-2.5 rounded-xl bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
             disabled={isLoading}
           />
           <button
@@ -169,8 +177,8 @@ export function AIChat({ open, onClose }: AIChatProps) {
             disabled={!message.trim() || isLoading}
             className={`flex items-center justify-center w-10 h-10 rounded-xl transition-all ${
               message.trim() && !isLoading
-                ? "bg-[#6750A4] text-white hover:bg-[#4F378B] shadow-md"
-                : "bg-[#E7E0EC] text-[#49454F] cursor-not-allowed"
+                ? "bg-primary text-primary-foreground hover:opacity-90 shadow-md"
+                : "bg-muted text-muted-foreground cursor-not-allowed border border-border"
             }`}
           >
             {isLoading ? (

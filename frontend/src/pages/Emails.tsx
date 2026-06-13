@@ -1,11 +1,45 @@
-import { useState } from "react";
-import { mockData } from "@/lib/mockData";
-import { CheckCircle2, XCircle, Clock, PieChart, Send, Calendar, Activity } from "lucide-react";
+import { useState, useEffect } from "react";
+import { CheckCircle2, XCircle, Clock, PieChart, Send, Calendar, Activity, Edit2, Plus } from "lucide-react";
 import NewEmailModal from "@/components/NewEmailModal";
+import SequenceEditorModal from "@/components/SequenceEditorModal";
+import { getAuthHeaders } from "@/lib/auth";
+import { API_BASE_URL } from "@/lib/auth";
+
 
 export default function Emails() {
-  const { emails } = mockData;
   const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [editorStep, setEditorStep] = useState<any>(null);
+  const [stats, setStats] = useState({ totalSent: 0, totalOpened: 0, averageOpenRate: 0 });
+  const [history, setHistory] = useState<any[]>([]);
+  const [sequence, setSequence] = useState<any[]>([]);
+
+  const loadData = async () => {
+    try {
+      const statsRes = await fetch(`${API_BASE_URL}/emails/stats/`, { headers: getAuthHeaders() });
+      if (statsRes.ok) {
+        setStats(await statsRes.json());
+      }
+
+      const historyRes = await fetch(`${API_BASE_URL}/emails/history/`, { headers: getAuthHeaders() });
+      if (historyRes.ok) {
+        setHistory(await historyRes.json());
+      }
+      
+      const seqRes = await fetch(`${API_BASE_URL}/emails/sequence/`, { headers: getAuthHeaders() });
+      if (seqRes.ok) {
+        setSequence(await seqRes.json());
+      }
+    } catch (error) {
+      console.error("Error loading email data", error);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+    // Refresh interval
+    const interval = setInterval(loadData, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <>
@@ -37,7 +71,7 @@ export default function Emails() {
             </div>
             <div>
               <p className="text-[10px] md:text-xs font-semibold text-muted-foreground">Envoyés</p>
-              <p className="text-lg md:text-2xl font-bold text-foreground">{emails.stats.totalSent.toLocaleString("fr-FR")}</p>
+              <p className="text-lg md:text-2xl font-bold text-foreground">{stats.totalSent.toLocaleString("fr-FR")}</p>
             </div>
           </div>
           <div className="glass-card rounded-2xl p-3 md:p-5 flex flex-col md:flex-row md:items-center gap-2 md:gap-4 border-l-4 border-l-emerald-500">
@@ -46,7 +80,7 @@ export default function Emails() {
             </div>
             <div>
               <p className="text-[10px] md:text-xs font-semibold text-muted-foreground">Ouverts</p>
-              <p className="text-lg md:text-2xl font-bold text-foreground">{emails.stats.totalOpened.toLocaleString("fr-FR")}</p>
+              <p className="text-lg md:text-2xl font-bold text-foreground">{stats.totalOpened.toLocaleString("fr-FR")}</p>
             </div>
           </div>
           <div className="glass-card rounded-2xl p-3 md:p-5 flex flex-col md:flex-row md:items-center gap-2 md:gap-4 border-l-4 border-l-purple-500">
@@ -55,7 +89,7 @@ export default function Emails() {
             </div>
             <div>
               <p className="text-[10px] md:text-xs font-semibold text-muted-foreground">Taux ouv.</p>
-              <p className="text-lg md:text-2xl font-bold text-foreground">{emails.stats.averageOpenRate}%</p>
+              <p className="text-lg md:text-2xl font-bold text-foreground">{stats.averageOpenRate}%</p>
             </div>
           </div>
         </div>
@@ -63,29 +97,50 @@ export default function Emails() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Sequence Timeline */}
           <div className="glass-card rounded-2xl p-4 md:p-6 lg:col-span-1">
-            <div className="flex items-center gap-2 mb-5">
-              <Clock className="h-4 w-4 text-primary" />
-              <h2 className="text-base font-bold text-foreground">Séquence 90 Jours</h2>
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-primary" />
+                <h2 className="text-base font-bold text-foreground">Séquence 90 Jours</h2>
+              </div>
+              <button
+                onClick={() => setEditorStep({ day: 1, title: "", subject: "", body: "" })}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-xs font-bold"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Ajouter
+              </button>
             </div>
             {/* Horizontal scroll timeline on mobile */}
             <div className="lg:hidden flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 hide-scrollbar">
-              {emails.sequence.map((step, i) => (
-                <div key={i} className="shrink-0 w-40 bg-muted/30 rounded-xl p-3 border border-border/50">
-                  <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md inline-block mb-2">Jour {step.day}</span>
+              {sequence.length === 0 && <p className="text-sm text-muted-foreground italic px-2">Aucune séquence configurée.</p>}
+              {sequence.map((step, i) => (
+                <div key={i} className="shrink-0 w-40 bg-muted/30 rounded-xl p-3 border border-border/50 relative group">
+                  <div className="flex justify-between items-start">
+                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md inline-block mb-2">Jour {step.day}</span>
+                    <button onClick={() => setEditorStep(step)} className="p-1 rounded-md text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors">
+                      <Edit2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                   <h3 className="text-xs font-bold text-foreground leading-tight">{step.title}</h3>
-                  <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed line-clamp-2">{step.description}</p>
+                  <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed line-clamp-2">{step.subject}</p>
                 </div>
               ))}
             </div>
             {/* Vertical timeline on desktop */}
             <div className="hidden lg:block relative pl-5 space-y-5 border-l-2 border-primary/20 ml-2">
-              {emails.sequence.map((step, i) => (
-                <div key={i} className="relative">
+              {sequence.length === 0 && <p className="text-sm text-muted-foreground italic">Aucune séquence configurée.</p>}
+              {sequence.map((step, i) => (
+                <div key={i} className="relative group">
                   <div className="absolute -left-[29px] w-3.5 h-3.5 rounded-full bg-background border-2 border-primary ring-2 ring-background" />
-                  <div className="bg-muted/30 rounded-xl p-3 border border-border/50 hover:border-primary/30 transition-colors">
-                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md mb-1.5 inline-block">Jour {step.day}</span>
-                    <h3 className="text-xs font-bold text-foreground">{step.title}</h3>
-                    <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">{step.description}</p>
+                  <div className="bg-muted/30 rounded-xl p-3 border border-border/50 hover:border-primary/30 transition-colors flex justify-between items-start">
+                    <div>
+                      <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md mb-1.5 inline-block">Jour {step.day}</span>
+                      <h3 className="text-xs font-bold text-foreground">{step.title}</h3>
+                      <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">{step.subject}</p>
+                    </div>
+                    <button onClick={() => setEditorStep(step)} className="p-1.5 rounded-md text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-primary/10 hover:text-primary transition-all">
+                      <Edit2 className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -100,22 +155,23 @@ export default function Emails() {
             </div>
             {/* Mobile list */}
             <div className="md:hidden divide-y divide-border">
-              {emails.history.map((e, i) => (
+              {history.map((e, i) => (
                 <div key={e.id} className="flex items-center gap-3 p-4" style={{ animation: `fadeIn 0.3s ease-out ${i * 0.05}s both` }}>
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${e.type === "automated" ? "bg-primary/10 text-primary" : "bg-orange-500/10 text-orange-500"}`}>
                     {e.type === "automated" ? <Clock className="h-4 w-4" /> : <Send className="h-4 w-4" />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-foreground truncate">{e.prospectName}</p>
+                    <p className="text-sm font-bold text-foreground truncate">{e.prospect_name}</p>
                     <p className="text-xs text-muted-foreground truncate">{e.subject}</p>
                   </div>
                   <div className="shrink-0 text-right">
                     {e.opened
-                      ? <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-500"><CheckCircle2 className="h-3 w-3" /> {e.openCount}x</span>
+                      ? <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-500"><CheckCircle2 className="h-3 w-3" /> {e.open_count}x</span>
                       : <span className="inline-flex items-center gap-1 text-[10px] font-bold text-muted-foreground"><XCircle className="h-3 w-3" /> —</span>}
                   </div>
                 </div>
               ))}
+              {history.length === 0 && <p className="p-4 text-center text-sm text-muted-foreground">Aucun email envoyé.</p>}
             </div>
             {/* Desktop table */}
             <div className="hidden md:block flex-1 overflow-x-auto">
@@ -130,9 +186,9 @@ export default function Emails() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {emails.history.map((e, i) => (
+                  {history.map((e, i) => (
                     <tr key={e.id} className="hover:bg-muted/30 transition-colors" style={{ animation: `fadeIn 0.3s ease-out ${i * 0.05}s both` }}>
-                      <td className="px-6 py-4 font-semibold text-foreground">{e.prospectName}</td>
+                      <td className="px-6 py-4 font-semibold text-foreground">{e.prospect_name}</td>
                       <td className="px-6 py-4 text-muted-foreground">{e.subject}</td>
                       <td className="px-6 py-4">
                         {e.type === "automated"
@@ -140,15 +196,18 @@ export default function Emails() {
                           : <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-orange-500/10 text-orange-500"><Send className="h-3 w-3" /> Manuel</span>}
                       </td>
                       <td className="px-6 py-4 text-muted-foreground">
-                        <div className="flex items-center gap-2"><Calendar className="h-3.5 w-3.5" />{new Date(e.sentAt).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</div>
+                        <div className="flex items-center gap-2"><Calendar className="h-3.5 w-3.5" />{new Date(e.sent_at).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</div>
                       </td>
                       <td className="px-6 py-4">
                         {e.opened
-                          ? <div className="flex items-center gap-2"><span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-500"><CheckCircle2 className="h-3 w-3" /> Ouvert</span><span className="text-[10px] text-muted-foreground">({e.openCount}x)</span></div>
+                          ? <div className="flex items-center gap-2"><span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-500"><CheckCircle2 className="h-3 w-3" /> Ouvert</span><span className="text-[10px] text-muted-foreground">({e.open_count}x)</span></div>
                           : <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-muted text-muted-foreground"><XCircle className="h-3 w-3" /> Non ouvert</span>}
                       </td>
                     </tr>
                   ))}
+                  {history.length === 0 && (
+                    <tr><td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">Aucun email dans l'historique.</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -156,7 +215,18 @@ export default function Emails() {
         </div>
       </div>
 
-      {emailModalOpen && <NewEmailModal onClose={() => setEmailModalOpen(false)} />}
+      {emailModalOpen && <NewEmailModal onClose={() => {
+        setEmailModalOpen(false);
+        loadData();
+      }} />}
+
+      {editorStep && (
+        <SequenceEditorModal
+          step={editorStep}
+          onClose={() => setEditorStep(null)}
+          onSaved={loadData}
+        />
+      )}
     </>
   );
 }

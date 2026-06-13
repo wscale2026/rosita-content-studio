@@ -19,6 +19,7 @@ export default defineConfig({
       "@contracts": path.resolve(__dirname, "./contracts"),
       "@db": path.resolve(__dirname, "./db"),
       "db": path.resolve(__dirname, "./db"),
+      "@frontoffice": path.resolve(__dirname, "./src/frontoffice/src"),
     },
   },
   envDir: path.resolve(__dirname),

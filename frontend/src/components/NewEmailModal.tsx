@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   X,
   Send,
@@ -16,8 +17,10 @@ import {
   Italic,
   Type,
 } from "lucide-react";
-import { mockData } from "@/lib/mockData";
 import { toast } from "sonner";
+import { getAuthHeaders } from "@/lib/auth";
+import { API_BASE_URL } from "@/lib/auth";
+
 
 interface NewEmailModalProps {
   onClose: () => void;
@@ -28,25 +31,25 @@ const TEMPLATES = [
     id: 1,
     label: "🎁 Ressources offertes",
     subject: "Voici tes guides gratuits 🎁",
-    body: `Salut [Prénom],\n\nComme promis, voici tes guides gratuits pour débuter sur TikTok :\n\n📘 Guide de démarrage TikTok (tout ce que j'aurais aimé savoir au début)\n📋 Checklist des 8 histoires qui convertissent\n\nPrends le temps de les lire attentivement, il y a des pépites dedans !\n\nÀ très vite,\nRosita 🌟`,
+    body: `Salut [Prénom],\n\nComme promis, voici tes guides gratuits pour débuter sur TikTok :\n\n📘 Guide de démarrage TikTok (tout ce que j'aurais aimé savoir au début)\n📋 Checklist des 8 histoires qui convertissent\n\nPrends le temps de les lire attentivement, il y a des pépites dedans !\n\nÀ très vite,\nRosyta 🌟`,
   },
   {
     id: 2,
     label: "🔥 Invitation LIVE",
     subject: "Je t'invite à mon LIVE exclusif ce soir 🎙️",
-    body: `Salut [Prénom],\n\nJ'organise un LIVE exclusif ce soir à 20h sur TikTok où je vais révéler ma méthode complète pour monétiser ton compte.\n\n🎯 Ce que tu vas apprendre :\n- Comment trouver ta niche en 10 min\n- Le script parfait pour vendre sans vendre\n- Les erreurs qui tuent le reach (et comment les éviter)\n\nC'est GRATUIT, mais les places sont limitées. Rejoins-moi ce soir !\n\nRosita ✨`,
+    body: `Salut [Prénom],\n\nJ'organise un LIVE exclusif ce soir à 20h sur TikTok où je vais révéler ma méthode complète pour monétiser ton compte.\n\n🎯 Ce que tu vas apprendre :\n- Comment trouver ta niche en 10 min\n- Le script parfait pour vendre sans vendre\n- Les erreurs qui tuent le reach (et comment les éviter)\n\nC'est GRATUIT, mais les places sont limitées. Rejoins-moi ce soir !\n\nRosyta ✨`,
   },
   {
     id: 3,
     label: "💎 Offre Mentorship VIP",
     subject: "Une opportunité rare pour toi 💎",
-    body: `Salut [Prénom],\n\nJe t'écris personnellement parce que j'ai suivi ton parcours et je pense que tu es prête pour la prochaine étape.\n\nMon Mentorship VIP ouvre ses portes pour seulement 5 personnes ce mois-ci.\n\nVoici ce que tu vas obtenir :\n✅ 3 mois d'accompagnement personnalisé\n✅ Accès à tous mes templates & scripts\n✅ Feedback hebdomadaire sur tes vidéos\n✅ Communauté privée d'entrepreneures\n\nTu veux en savoir plus ? Réponds simplement à cet email et on planifie un appel découverte gratuit.\n\nRosita 💜`,
+    body: `Salut [Prénom],\n\nJe t'écris personnellement parce que j'ai suivi ton parcours et je pense que tu es prête pour la prochaine étape.\n\nMon Mentorship VIP ouvre ses portes pour seulement 5 personnes ce mois-ci.\n\nVoici ce que tu vas obtenir :\n✅ 3 mois d'accompagnement personnalisé\n✅ Accès à tous mes templates & scripts\n✅ Feedback hebdomadaire sur tes vidéos\n✅ Communauté privée d'entrepreneures\n\nTu veux en savoir plus ? Réponds simplement à cet email et on planifie un appel découverte gratuit.\n\nRosyta 💜`,
   },
   {
     id: 4,
     label: "📞 Relance douce",
     subject: "Tu avais téléchargé mes guides...",
-    body: `Salut [Prénom],\n\nIl y a quelques semaines tu avais téléchargé mes guides TikTok.\n\nJ'espère qu'ils t'ont été utiles !\n\nJe voulais juste prendre de tes nouvelles et savoir où tu en es dans ton aventure TikTok ?\n\nSi tu as des questions ou que tu veux qu'on en parle, je suis là.\n\nRosita 🌸`,
+    body: `Salut [Prénom],\n\nIl y a quelques semaines tu avais téléchargé mes guides TikTok.\n\nJ'espère qu'ils t'ont été utiles !\n\nJe voulais juste prendre de tes nouvelles et savoir où tu en es dans ton aventure TikTok ?\n\nSi tu as des questions ou que tu veux qu'on en parle, je suis là.\n\nRosyta 🌸`,
   },
 ];
 
@@ -85,22 +88,44 @@ export default function NewEmailModal({ onClose }: NewEmailModalProps) {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const filteredProspects = mockData.prospects.filter((p) => {
+  const [prospects, setProspects] = useState<any[]>([]);
+  const [loadingProspects, setLoadingProspects] = useState(true);
+
+  // Fetch real prospects
+  useEffect(() => {
+    const fetchProspects = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/prospects/`, {
+          headers: getAuthHeaders(),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setProspects(data);
+        }
+      } catch (err) {
+        console.error("Failed to load prospects", err);
+      } finally {
+        setLoadingProspects(false);
+      }
+    };
+    fetchProspects();
+  }, []);
+
+  const filteredProspects = prospects.filter((p) => {
     const q = prospectSearch.toLowerCase();
-    return (
-      p.firstName.toLowerCase().includes(q) ||
-      p.lastName.toLowerCase().includes(q) ||
-      p.email.toLowerCase().includes(q)
-    );
+    const fname = (p.first_name || "").toLowerCase();
+    const lname = (p.last_name || "").toLowerCase();
+    const email = (p.email || "").toLowerCase();
+    return fname.includes(q) || lname.includes(q) || email.includes(q);
   });
 
-  const selectedProspect = mockData.prospects.find((p) => p.id === selectedProspectId);
+  const selectedProspect = prospects.find((p) => p.id === selectedProspectId);
 
   const recipientCount =
     recipientType === "all"
-      ? mockData.prospects.length
+      ? prospects.length
       : recipientType === "status"
-      ? mockData.prospects.filter((p) => p.status === selectedStatus).length
+      ? prospects.filter((p) => p.status === selectedStatus).length
       : selectedProspect
       ? 1
       : 0;
@@ -111,7 +136,7 @@ export default function NewEmailModal({ onClose }: NewEmailModalProps) {
       : recipientType === "status"
       ? `Statut "${selectedStatus}" (${recipientCount} prospects)`
       : selectedProspect
-      ? `${selectedProspect.firstName} ${selectedProspect.lastName}`
+      ? `${selectedProspect.first_name || ""} ${selectedProspect.last_name || ""}`.trim() || selectedProspect.email
       : "Choisir un prospect…";
 
   const applyTemplate = (tpl: typeof TEMPLATES[number]) => {
@@ -133,16 +158,45 @@ export default function NewEmailModal({ onClose }: NewEmailModalProps) {
     }, 0);
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     setSending(true);
-    setTimeout(() => {
-      setSending(false);
-      onClose();
-      toast.success("Email envoyé avec succès ! 🎉", {
-        description: `"${subject}" → ${recipientLabel}`,
-        duration: 5000,
+    try {
+      const payload: any = {
+        subject,
+        body,
+        is_html: true,
+      };
+
+      if (recipientType === "individual" && selectedProspectId) {
+        payload.prospect_id = selectedProspectId;
+      } else if (recipientType === "status") {
+        payload.status = selectedStatus;
+      }
+
+      const res = await fetch(`${API_BASE_URL}/emails/send/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify(payload),
       });
-    }, 1500);
+
+      const data = await res.json();
+      if (res.ok) {
+        toast.success("Email envoyé avec succès ! 🎉", {
+          description: data.message || `"${subject}" → ${recipientLabel}`,
+          duration: 5000,
+        });
+        onClose();
+      } else {
+        toast.error(data.error || "Erreur lors de l'envoi");
+      }
+    } catch (error) {
+      toast.error("Erreur réseau");
+    } finally {
+      setSending(false);
+    }
   };
 
   const canSend =
@@ -150,8 +204,8 @@ export default function NewEmailModal({ onClose }: NewEmailModalProps) {
     body.trim() &&
     (recipientType !== "individual" || selectedProspect);
 
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-0 sm:p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-background/80 backdrop-blur-sm"
@@ -159,10 +213,10 @@ export default function NewEmailModal({ onClose }: NewEmailModalProps) {
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-3xl max-h-[92vh] bg-card border border-border rounded-2xl shadow-2xl flex flex-col m-4 animate-scale-in overflow-hidden">
+      <div className="relative w-full sm:max-w-3xl h-[100dvh] sm:h-auto sm:max-h-[92vh] bg-card border-0 sm:border border-border rounded-none sm:rounded-2xl shadow-2xl flex flex-col animate-scale-in overflow-hidden z-10">
 
         {/* ── Header ── */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/20 shrink-0">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border bg-muted/20 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
               <Send className="h-4 w-4" />
@@ -196,7 +250,7 @@ export default function NewEmailModal({ onClose }: NewEmailModalProps) {
             <div className="flex flex-col gap-0 divide-y divide-border">
 
               {/* ── Destinataires ── */}
-              <div className="px-6 py-4 space-y-3">
+              <div className="px-4 sm:px-6 py-3 sm:py-4 space-y-3">
                 <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                   Destinataires
                 </label>
@@ -250,7 +304,7 @@ export default function NewEmailModal({ onClose }: NewEmailModalProps) {
                     >
                       <span className={selectedProspect ? "text-foreground font-medium" : "text-muted-foreground"}>
                         {selectedProspect
-                          ? `${selectedProspect.firstName} ${selectedProspect.lastName} — ${selectedProspect.email}`
+                          ? `${selectedProspect.first_name || ""} ${selectedProspect.last_name || ""} — ${selectedProspect.email}`.trim()
                           : "Rechercher un prospect…"}
                       </span>
                       <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${prospectDropdownOpen ? "rotate-180" : ""}`} />
@@ -283,14 +337,17 @@ export default function NewEmailModal({ onClose }: NewEmailModalProps) {
                                   onClick={() => { setSelectedProspectId(p.id); setProspectDropdownOpen(false); setProspectSearch(""); }}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors text-left"
                                 >
-                                  <div className="w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center shrink-0">
-                                    {p.firstName[0]}{p.lastName[0]}
+                                  <div className="w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center shrink-0 uppercase">
+                                    {(p.first_name?.[0] || "")}{(p.last_name?.[0] || "")}
+                                    {(!p.first_name && !p.last_name) ? p.email[0] : ""}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-semibold text-foreground">{p.firstName} {p.lastName}</p>
+                                    <p className="text-sm font-semibold text-foreground truncate">
+                                      {p.first_name} {p.last_name}
+                                    </p>
                                     <p className="text-xs text-muted-foreground truncate">{p.email}</p>
                                   </div>
-                                  <Icon className={`h-3.5 w-3.5 shrink-0 ${statusColors[p.status]}`} />
+                                  <Icon className={`h-3.5 w-3.5 shrink-0 ${statusColors[p.status || "froid"]}`} />
                                 </button>
                               );
                             })
@@ -313,7 +370,7 @@ export default function NewEmailModal({ onClose }: NewEmailModalProps) {
               </div>
 
               {/* ── Sujet ── */}
-              <div className="px-6 py-4 space-y-2">
+              <div className="px-4 sm:px-6 py-3 sm:py-4 space-y-2">
                 <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                   Sujet
                 </label>
@@ -327,7 +384,7 @@ export default function NewEmailModal({ onClose }: NewEmailModalProps) {
               </div>
 
               {/* ── Templates ── */}
-              <div className="px-6 py-4 space-y-2">
+              <div className="px-4 sm:px-6 py-3 sm:py-4 space-y-2">
                 <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                   <Sparkles className="h-3.5 w-3.5 text-primary" />
                   Templates rapides
@@ -346,7 +403,7 @@ export default function NewEmailModal({ onClose }: NewEmailModalProps) {
               </div>
 
               {/* ── Corps ── */}
-              <div className="px-6 py-4 space-y-2">
+              <div className="px-4 sm:px-6 py-3 sm:py-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                     Message
@@ -369,8 +426,8 @@ export default function NewEmailModal({ onClose }: NewEmailModalProps) {
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
                   placeholder="Écris ton message ici… Utilise [Prénom] pour personnaliser automatiquement."
-                  rows={10}
-                  className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all text-sm resize-none leading-relaxed font-mono"
+                  rows={6}
+                  className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all text-sm resize-none min-h-[150px] sm:min-h-[250px] leading-relaxed font-mono"
                 />
                 <p className="text-[10px] text-muted-foreground text-right">
                   {body.length} caractères
@@ -390,8 +447,8 @@ export default function NewEmailModal({ onClose }: NewEmailModalProps) {
                         R
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-foreground">Rosita Content Studio</p>
-                        <p className="text-xs text-muted-foreground">hello@rosita-studio.com</p>
+                        <p className="text-sm font-bold text-foreground">Rosyta Content Studio</p>
+                        <p className="text-xs text-muted-foreground">hello@rosyta-studio.com</p>
                       </div>
                     </div>
                     <div className="space-y-1">
@@ -411,7 +468,7 @@ export default function NewEmailModal({ onClose }: NewEmailModalProps) {
                       {body || <span className="text-muted-foreground italic">Aucun contenu…</span>}
                     </pre>
                     <div className="mt-6 pt-4 border-t border-border text-xs text-muted-foreground">
-                      <p>Rosita Content Studio · TikTok Mentorship</p>
+                      <p>Rosyta Content Studio · TikTok Mentorship</p>
                       <p className="mt-1">
                         <span className="underline cursor-pointer hover:text-primary">Se désabonner</span>
                       </p>
@@ -427,8 +484,8 @@ export default function NewEmailModal({ onClose }: NewEmailModalProps) {
         </div>
 
         {/* ── Footer ── */}
-        <div className="px-6 py-4 border-t border-border bg-muted/10 flex items-center justify-between gap-4 shrink-0">
-          <div className="text-xs text-muted-foreground">
+        <div className="flex-col sm:flex-row px-4 sm:px-6 py-3 sm:py-4 border-t border-border bg-muted/10 flex sm:items-center justify-between gap-3 sm:gap-4 shrink-0">
+          <div className="text-xs text-muted-foreground text-center sm:text-left order-2 sm:order-1">
             {canSend ? (
               <span className="flex items-center gap-1.5 text-emerald-500 font-medium">
                 <CheckCircle2 className="h-3.5 w-3.5" />
@@ -438,17 +495,17 @@ export default function NewEmailModal({ onClose }: NewEmailModalProps) {
               "Complétez le sujet, le message et les destinataires."
             )}
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2 sm:gap-3 order-1 sm:order-2 w-full sm:w-auto">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-muted text-muted-foreground hover:text-foreground hover:bg-muted-foreground/20 transition-colors text-sm font-semibold"
+              className="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-muted text-muted-foreground hover:text-foreground hover:bg-muted-foreground/20 transition-colors text-sm font-semibold"
             >
               Annuler
             </button>
             <button
               onClick={handleSend}
               disabled={!canSend || sending}
-              className="flex items-center gap-2 px-6 py-2 rounded-xl bg-primary text-primary-foreground font-bold hover:opacity-90 transition-opacity shadow-md shadow-primary/25 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-xl bg-primary text-primary-foreground font-bold hover:opacity-90 transition-opacity shadow-md shadow-primary/25 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
               {sending ? (
                 <>
@@ -458,7 +515,7 @@ export default function NewEmailModal({ onClose }: NewEmailModalProps) {
               ) : (
                 <>
                   <Send className="h-4 w-4" />
-                  Envoyer à {recipientCount > 1 ? `${recipientCount} personnes` : recipientLabel}
+                  Envoyer
                 </>
               )}
             </button>
@@ -467,4 +524,6 @@ export default function NewEmailModal({ onClose }: NewEmailModalProps) {
       </div>
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(modalContent, document.body) : null;
 }

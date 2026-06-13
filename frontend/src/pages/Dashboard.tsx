@@ -1,51 +1,81 @@
 import { useNavigate } from "react-router";
 import {
   Users,
-  Euro,
+  Banknote,
   Mail,
   Flame,
   TrendingUp,
   Activity,
   ArrowUpRight,
 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { getAuthHeaders, logoutUser } from "@/lib/auth";
 import { mockData } from "@/lib/mockData";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { API_BASE_URL } from "@/lib/auth";
+
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    totalRevenue: 0,
+    totalProspects: 0,
+    conversionRate: 0,
+    activeClients: 0,
+    sourceDistribution: [],
+    leadsEvolution: [],
+    recentActivity: []
+  });
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/dashboard/stats/`, { headers: getAuthHeaders() })
+      .then(res => {
+        if (!res.ok) {
+          if (res.status === 401) {
+            logoutUser();
+            window.location.href = "/backoffice/login";
+          }
+          throw new Error("Network response was not ok");
+        }
+        return res.json();
+      })
+      .then(data => setStats(data))
+      .catch(err => console.error("Error loading dashboard stats:", err));
+  }, []);
+
   const { dashboard } = mockData;
 
   const kpiCards = [
     {
       title: "Nouveaux Prospects",
-      value: dashboard.newProspects,
-      label: "+12% cette semaine",
+      value: stats.totalProspects,
+      label: "Total enregistré",
       icon: Users,
       color: "text-blue-500",
       bgColor: "bg-blue-500/10",
       onClick: () => navigate("/prospects"),
     },
     {
-      title: "Revenus Mois",
-      value: `€${dashboard.revenue.toLocaleString("fr-FR")}`,
+      title: "Revenus",
+      value: `${(stats.totalRevenue || 0).toLocaleString("fr-FR")} CFA`,
       label: "+5% par rapport au mois dernier",
-      icon: Euro,
+      icon: Banknote,
       color: "text-emerald-500",
       bgColor: "bg-emerald-500/10",
       onClick: () => navigate("/payments"),
     },
     {
-      title: "Taux d'ouverture",
-      value: `${dashboard.openRate}%`,
-      label: "Très performant",
+      title: "Taux de conversion",
+      value: `${stats.conversionRate}%`,
+      label: "Basé sur les paiements",
       icon: Mail,
       color: "text-purple-500",
       bgColor: "bg-purple-500/10",
-      onClick: () => navigate("/emails"),
+      onClick: () => navigate("/payments"),
     },
     {
-      title: "Prospects Chauds",
-      value: dashboard.hotProspects,
+      title: "Clients Actifs",
+      value: stats.activeClients,
       label: "Prêts pour l'appel",
       icon: Flame,
       color: "text-orange-500",
@@ -111,7 +141,7 @@ export default function Dashboard() {
           </div>
           <div className="h-[200px] md:h-[280px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={dashboard.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={stats.leadsEvolution} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorLeads" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3} />
@@ -119,7 +149,7 @@ export default function Dashboard() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.4} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} minTickGap={30} />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} minTickGap={30} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
                 <Tooltip
                   contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '12px', border: '1px solid hsl(var(--border))', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
@@ -137,7 +167,7 @@ export default function Dashboard() {
             <h2 className="text-base md:text-lg font-bold text-foreground">Activité récente</h2>
           </div>
           <div className="space-y-2">
-            {dashboard.recentActivity.map((item, idx) => (
+            {(stats.recentActivity || []).map((item: any, idx: number) => (
               <div
                 key={item.id}
                 className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 active:bg-muted transition-colors"
@@ -153,7 +183,7 @@ export default function Dashboard() {
                   }`}
                 >
                   {item.type === "sale" ? (
-                    <Euro className="h-4 w-4" />
+                    <Banknote className="h-4 w-4" />
                   ) : item.type === "email" ? (
                     <Mail className="h-4 w-4" />
                   ) : (
@@ -166,11 +196,36 @@ export default function Dashboard() {
                 </div>
                 {item.amount && (
                   <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
-                    +€{item.amount}
+                    +{(item.amount || 0).toLocaleString("fr-FR")} CFA
                   </span>
                 )}
               </div>
             ))}
+            {(!stats.recentActivity || stats.recentActivity.length === 0) && (
+              <p className="text-sm text-muted-foreground py-4 text-center">Aucune activité récente.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Source Distribution Bar Chart */}
+        <div className="lg:col-span-3 glass-card rounded-2xl p-4 md:p-6 flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base md:text-lg font-bold text-foreground">Répartition par Source</h2>
+          </div>
+          <div className="h-[200px] md:h-[280px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={stats.sourceDistribution} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.4} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--foreground))', fontWeight: 600 }} />
+                <Tooltip
+                  cursor={{ fill: 'hsl(var(--muted))', opacity: 0.4 }}
+                  contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '12px', border: '1px solid hsl(var(--border))', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  itemStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
+                />
+                <Bar dataKey="value" fill="#10B981" radius={[4, 4, 0, 0]} barSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>

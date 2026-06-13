@@ -64,6 +64,22 @@ export async function authenticateRequest(headers: Headers) {
   if (!claim) {
     throw Errors.forbidden("Invalid authentication token.");
   }
+
+  // Dev shortcut: never hit the DB for the mock user
+  if (claim.unionId === "dev-mock-id") {
+    return {
+      id: 1,
+      unionId: "dev-mock-id",
+      name: "Admin Dev",
+      email: "admin@rosita.local",
+      avatar: "",
+      role: "admin" as const,
+      lastSignInAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+  }
+
   const user = await findUserByUnionId(claim.unionId);
   if (!user) {
     throw Errors.forbidden("User not found. Please re-login.");

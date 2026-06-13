@@ -24,6 +24,9 @@
       ],
       "@db/*": [
         "./db/*"
+      ],
+      "@frontoffice/*": [
+        "./src/frontoffice/src/*"
       ]
     },
     "moduleResolution": "bundler",

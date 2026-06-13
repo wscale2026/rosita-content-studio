@@ -1,28 +1,115 @@
-import { useState } from "react";
-import { mockData } from "@/lib/mockData";
-import { FileText, Upload, Download, Trash2, File, CheckCircle2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { FileText, Upload, Download, Trash2, File, CheckCircle2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { getAuthHeaders } from "@/lib/auth";
+import { API_BASE_URL } from "@/lib/auth";
+
 
 export default function Content() {
-  const [documents, setDocuments] = useState(mockData.content);
+  const [documents, setDocuments] = useState<any[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleFileUpload = (file: File) => {
-    const newDoc = {
-      id: Date.now(),
-      title: file.name.replace(/\.pdf$/i, ""),
-      type: "pdf",
-      size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-      uploadedAt: new Date().toISOString(),
-      downloads: 0,
-    };
-    setDocuments([newDoc, ...documents]);
-    toast.success("Document ajouté !", { description: file.name, icon: <CheckCircle2 className="h-4 w-4" /> });
+  const loadDocuments = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/content/`, { headers: getAuthHeaders() });
+      if (res.ok) {
+        setDocuments(await res.json());
+      }
+    } catch (error) {
+      console.error("Erreur chargement documents", error);
+    }
   };
 
-  const handleDelete = (id: number) => {
-    setDocuments(documents.filter((d) => d.id !== id));
-    toast.success("Document supprimé.");
+  useEffect(() => {
+    loadDocuments();
+  }, []);
+
+  const handleFileUpload = async (file: File) => {
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append("title", file.name.replace(/\.pdf$/i, ""));
+    formData.append("file", file);
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/content/`, {
+        method: "POST",
+        headers: {
+          ...getAuthHeaders(),
+          // Don't set Content-Type here, browser sets it automatically with boundary for FormData
+        },
+        body: formData,
+      });
+
+      if (res.ok) {
+        toast.success("Document ajouté !", { description: file.name, icon: <CheckCircle2 className="h-4 w-4" /> });
+        loadDocuments();
+      } else {
+        toast.error("Erreur lors de l'ajout du document");
+      }
+    } catch (error) {
+      toast.error("Erreur réseau");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/content/${id}/`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+      if (res.ok) {
+        setDocuments(documents.filter((d) => d.id !== id));
+        toast.success("Document supprimé.");
+      }
+    } catch (error) {
+      toast.error("Erreur lors de la suppression");
+    }
+  };
+
+  const handleDownload = async (id: number, title: string) => {
+    try {
+      // First hit the download endpoint to increment the counter and get the file
+      const res = await fetch(`${API_BASE_URL}/content/${id}/download/`, {
+        headers: getAuthHeaders()
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${title}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        loadDocuments(); // Refresh downloads count
+      }
+    } catch (error) {
+      toast.error("Erreur lors du téléchargement");
+    }
+  };
+
+  const handleToggleLeadMagnet = async (id: number, currentValue: boolean) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/content/${id}/`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify({ is_lead_magnet: !currentValue })
+      });
+      if (res.ok) {
+        toast.success(currentValue ? "Retiré des lead magnets" : "Ajouté aux lead magnets");
+        loadDocuments();
+      } else {
+        toast.error("Erreur lors de la modification");
+      }
+    } catch (error) {
+      toast.error("Erreur réseau");
+    }
   };
 
   return (
@@ -47,9 +134,9 @@ export default function Content() {
         <p className="text-xs md:text-sm text-muted-foreground mt-1 mb-5">
           <span className="hidden sm:inline">Glissez un fichier PDF ici, ou </span>cliquez pour parcourir.
         </p>
-        <label className="cursor-pointer px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity shadow-md">
-          Choisir un fichier
-          <input type="file" className="hidden" accept=".pdf" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])} />
+        <label className={`cursor-pointer px-5 py-2.5 rounded-xl text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity shadow-md ${isUploading ? 'bg-muted text-muted-foreground' : 'bg-primary'}`}>
+          {isUploading ? 'Chargement...' : 'Choisir un fichier'}
+          <input type="file" className="hidden" accept=".pdf" disabled={isUploading} onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])} />
         </label>
       </div>
 
@@ -70,9 +157,17 @@ export default function Content() {
                 <span className="text-[10px] font-bold text-blue-500 flex items-center gap-1">
                   <Download className="h-3 w-3" /> {doc.downloads}
                 </span>
-                <button onClick={() => handleDelete(doc.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                <div className="flex gap-1">
+                  <button onClick={() => handleToggleLeadMagnet(doc.id, doc.is_lead_magnet)} className={`p-1.5 rounded-lg transition-colors ${doc.is_lead_magnet ? 'text-amber-500 hover:bg-amber-500/10' : 'text-muted-foreground hover:bg-muted'}`} title="Définir comme Lead Magnet (gratuit)">
+                    <Sparkles className="h-3.5 w-3.5" />
+                  </button>
+                  <button onClick={() => handleDownload(doc.id, doc.title)} className="p-1.5 rounded-lg hover:bg-blue-500/10 text-muted-foreground hover:text-blue-500 transition-colors">
+                    <Download className="h-3.5 w-3.5" />
+                  </button>
+                  <button onClick={() => handleDelete(doc.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -88,6 +183,7 @@ export default function Content() {
                   <th className="px-6 py-4">Taille</th>
                   <th className="px-6 py-4">Ajouté le</th>
                   <th className="px-6 py-4">Téléch.</th>
+                  <th className="px-6 py-4 text-center">Lead Magnet</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -101,13 +197,18 @@ export default function Content() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-muted-foreground">{doc.size}</td>
-                    <td className="px-6 py-4 text-muted-foreground">{new Date(doc.uploadedAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}</td>
+                    <td className="px-6 py-4 text-muted-foreground">{new Date(doc.uploaded_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}</td>
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/10 text-blue-500"><Download className="h-3 w-3" /> {doc.downloads}</span>
                     </td>
+                    <td className="px-6 py-4 text-center">
+                      <button onClick={() => handleToggleLeadMagnet(doc.id, doc.is_lead_magnet)} className={`p-2 rounded-xl transition-colors ${doc.is_lead_magnet ? 'bg-amber-500/10 text-amber-500' : 'bg-muted text-muted-foreground hover:bg-amber-500/10 hover:text-amber-500'}`} title="Définir comme document gratuit">
+                        <Sparkles className="h-4 w-4" />
+                      </button>
+                    </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
-                        <button className="p-2 rounded-xl bg-muted hover:bg-primary/10 hover:text-primary text-muted-foreground transition-colors"><Download className="h-4 w-4" /></button>
+                        <button onClick={() => handleDownload(doc.id, doc.title)} className="p-2 rounded-xl bg-muted hover:bg-primary/10 hover:text-primary text-muted-foreground transition-colors"><Download className="h-4 w-4" /></button>
                         <button onClick={() => handleDelete(doc.id)} className="p-2 rounded-xl bg-muted hover:bg-destructive/10 hover:text-destructive text-muted-foreground transition-colors"><Trash2 className="h-4 w-4" /></button>
                       </div>
                     </td>

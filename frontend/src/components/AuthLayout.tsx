@@ -21,42 +21,58 @@ import {
   X,
 } from "lucide-react";
 import { type ReactNode, useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { useLocation, useNavigate, Navigate } from "react-router";
 import { AIChat } from "./AIChat";
 
+// ── Theme helpers ─────────────────────────────────────────────────────────────
+const THEME_KEY = "rosyta_theme";
+
+function getInitialTheme(): "light" | "dark" {
+  const stored = localStorage.getItem(THEME_KEY);
+  if (stored === "dark" || stored === "light") return stored;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function applyTheme(t: "light" | "dark") {
+  document.documentElement.classList.toggle("dark", t === "dark");
+  localStorage.setItem(THEME_KEY, t);
+}
+
 const allMenuItems = [
-  { icon: LayoutDashboard, label: "Dashboard",   path: "/",          roles: ["admin", "editor", "viewer"] },
-  { icon: Users,           label: "Prospects",   path: "/prospects", roles: ["admin", "editor", "viewer"] },
-  { icon: CreditCard,      label: "Paiements",   path: "/payments",  roles: ["admin", "viewer"] },
-  { icon: Mail,            label: "Emails",      path: "/emails",    roles: ["admin", "editor", "viewer"] },
-  { icon: FileText,        label: "Contenu",     path: "/content",   roles: ["admin"] },
-  { icon: Settings,        label: "Paramètres",  path: "/settings",  roles: ["admin", "editor", "viewer"] },
+  { icon: LayoutDashboard, label: "Dashboard",   path: "/backoffice",           requireAdmin: false, requireEditor: false },
+  { icon: Users,           label: "Prospects",   path: "/backoffice/prospects", requireAdmin: true,  requireEditor: false },
+  { icon: CreditCard,      label: "Paiements",   path: "/backoffice/payments",  requireAdmin: true,  requireEditor: false },
+  { icon: Mail,            label: "Emails",      path: "/backoffice/emails",    requireAdmin: true,  requireEditor: false },
+  { icon: FileText,        label: "Contenu",     path: "/backoffice/content",   requireAdmin: false, requireEditor: true  },
+  { icon: Settings,        label: "Paramètres",  path: "/backoffice/settings",  requireAdmin: false, requireEditor: false },
 ];
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   const { user, isLoading, logout, isAdmin, isEditor, isViewer } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const [chatOpen, setChatOpen]   = useState(false);
+  const [chatOpen, setChatOpen]       = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [theme, setTheme]         = useState<"light" | "dark">("light");
+  const [confirmLogout, setConfirmLogout] = useState(false);
+  const [theme, setTheme]             = useState<"light" | "dark">(getInitialTheme);
 
+  // Apply theme on first render and whenever it changes
   useEffect(() => {
-    const isDark = document.documentElement.classList.contains("dark");
-    setTheme(isDark ? "dark" : "light");
-  }, []);
+    applyTheme(theme);
+  }, [theme]);
 
   const toggleTheme = () => {
-    const next = theme === "light" ? "dark" : "light";
-    setTheme(next);
-    document.documentElement.classList.toggle("dark", next === "dark");
+    setTheme((prev) => (prev === "light" ? "dark" : "light"));
   };
 
+  const handleLogout = () => setConfirmLogout(true);
+  const confirmLogoutAction = () => { setConfirmLogout(false); logout(); };
+  const cancelLogout = () => setConfirmLogout(false);
+
   const menuItems = allMenuItems.filter((item) => {
-    if (isAdmin) return true;
-    if (isEditor) return item.roles.includes("editor");
-    if (isViewer) return item.roles.includes("viewer");
-    return false;
+    if (item.requireAdmin && !isAdmin) return false;
+    if (item.requireEditor && !isEditor) return false;
+    return true;
   });
 
   // ── Loading ─────────────────────────────────────────────────────────────────
@@ -70,25 +86,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
 
   // ── Not authenticated ────────────────────────────────────────────────────────
   if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-dvh bg-background p-4">
-        <div className="flex flex-col items-center gap-6 p-8 w-full max-w-sm glass-card rounded-2xl">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-purple-800 flex items-center justify-center shadow-lg">
-            <span className="text-white font-bold text-2xl">R</span>
-          </div>
-          <div className="text-center space-y-1">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Rosita Content Studio</h1>
-            <p className="text-sm text-muted-foreground">Connectez-vous pour accéder à votre espace premium.</p>
-          </div>
-          <button
-            onClick={() => { window.location.href = "/api/oauth/authorize"; }}
-            className="w-full py-3 px-6 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 transition-opacity shadow-md"
-          >
-            Se connecter
-          </button>
-        </div>
-      </div>
-    );
+    return <Navigate to="/backoffice/login" replace />;
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -105,24 +103,24 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
     <div className="flex h-dvh w-screen overflow-hidden bg-background text-foreground transition-colors duration-300">
 
       {/* ══ DESKTOP SIDEBAR ══════════════════════════════════════════════════════ */}
-      <aside className="hidden md:flex flex-col w-20 xl:w-64 shrink-0 h-full border-r border-border glass z-30">
+      <aside className="group/sidebar hidden md:flex flex-col w-20 hover:w-64 transition-[width] duration-300 ease-in-out shrink-0 h-full border-r border-border glass z-30 overflow-hidden">
         {/* Logo */}
-        <div className="flex items-center gap-3 px-4 py-6 mb-2">
-          <div className="w-10 h-10 xl:w-11 xl:h-11 rounded-xl bg-gradient-to-br from-primary to-purple-800 flex items-center justify-center shadow-lg shrink-0">
-            <span className="text-white font-bold text-lg">R</span>
-          </div>
-          <span className="hidden xl:block font-bold text-lg tracking-tight text-foreground">Studio</span>
+        <div className="flex items-center gap-3 px-4 py-6 mb-2 shrink-0">
+          <img src="/images/logo.jpeg" alt="Rosyta Logo" className="w-10 h-10 xl:w-11 xl:h-11 rounded-xl object-cover shadow-lg shrink-0" />
+          <span className="font-bold text-lg tracking-tight text-foreground whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300">Studio</span>
         </div>
 
         {/* Nav Items */}
-        <nav className="flex flex-col gap-1 flex-1 px-2 overflow-y-auto">
+        <nav className="flex flex-col gap-1 flex-1 px-3 overflow-y-auto overflow-x-hidden">
           {menuItems.map((item) => {
-            const isActive = location.pathname === item.path;
+            // Note: location.pathname could be /backoffice or /backoffice/ something.
+            // When checking active state, exact match is good.
+            const isActive = location.pathname === item.path || (item.path === "/backoffice" && location.pathname === "/backoffice/");
             return (
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className={`group relative flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 ${
+                className={`group relative flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 w-full ${
                   isActive
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -133,33 +131,35 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
                   <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
                 )}
                 <item.icon className={`h-5 w-5 shrink-0 transition-transform duration-200 ${isActive ? "scale-110" : "group-hover:scale-105"}`} strokeWidth={isActive ? 2.5 : 1.8} />
-                <span className="hidden xl:block text-sm font-semibold">{item.label}</span>
+                <span className="text-sm font-semibold whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300">
+                  {item.label}
+                </span>
               </button>
             );
           })}
         </nav>
 
         {/* Bottom Actions */}
-        <div className="flex flex-col items-center xl:items-stretch gap-1 px-2 py-4 border-t border-border">
-          <button onClick={toggleTheme} className="flex items-center gap-3 px-3 py-3 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-all" title="Thème">
-            {theme === "light" ? <Moon className="h-5 w-5 shrink-0" /> : <Sun className="h-5 w-5 shrink-0" />}
-            <span className="hidden xl:block text-sm font-semibold">
+        <div className="flex flex-col gap-1 px-3 py-4 border-t border-border shrink-0">
+          <button onClick={toggleTheme} className="group relative flex items-center gap-3 px-3 py-3 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-all w-full" title="Thème">
+            {theme === "light" ? <Moon className="h-5 w-5 shrink-0 group-hover:scale-105 transition-transform duration-200" /> : <Sun className="h-5 w-5 shrink-0 group-hover:scale-105 transition-transform duration-200" />}
+            <span className="text-sm font-semibold whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300">
               {theme === "light" ? "Mode sombre" : "Mode clair"}
             </span>
           </button>
-          <button onClick={() => setChatOpen(!chatOpen)} className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${chatOpen ? "bg-primary text-white" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`} title="Assistant IA">
-            <Sparkles className="h-5 w-5 shrink-0" />
-            <span className="hidden xl:block text-sm font-semibold">Assistant IA</span>
+          <button onClick={() => setChatOpen(!chatOpen)} className={`group relative flex items-center gap-3 px-3 py-3 rounded-xl transition-all w-full ${chatOpen ? "bg-primary text-white" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`} title="Assistant IA">
+            <Sparkles className="h-5 w-5 shrink-0 group-hover:scale-105 transition-transform duration-200" />
+            <span className="text-sm font-semibold whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300">Assistant IA</span>
           </button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-3 px-3 py-3 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-all w-full focus:outline-none">
-                <Avatar className="h-7 w-7 shrink-0 border border-border">
+              <button className="group relative flex items-center gap-3 px-3 py-3 mt-1 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-all w-full focus:outline-none">
+                <Avatar className="h-7 w-7 shrink-0 border border-border group-hover:scale-105 transition-transform duration-200">
                   <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
                     {user.name?.charAt(0).toUpperCase() || "U"}
                   </AvatarFallback>
                 </Avatar>
-                <div className="hidden xl:block text-left min-w-0">
+                <div className="text-left min-w-0 opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">
                   <p className="text-sm font-semibold text-foreground truncate">{user.name || "Utilisateur"}</p>
                   <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
                 </div>
@@ -170,7 +170,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
                 <p className="text-sm font-semibold text-foreground">{user.name || "Utilisateur"}</p>
                 <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
               </div>
-              <DropdownMenuItem onClick={logout} className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 rounded-lg p-2">
+              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive dark:text-red-400 focus:text-destructive focus:bg-destructive/10 rounded-lg p-2">
                 <LogOut className="mr-2 h-4 w-4" />
                 <span className="font-medium">Déconnexion</span>
               </DropdownMenuItem>
@@ -185,9 +185,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         {/* ── MOBILE TOP HEADER ────────────────────────────────────────────────── */}
         <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border glass z-20 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-purple-800 flex items-center justify-center shadow-md">
-              <span className="text-white font-bold text-sm">R</span>
-            </div>
+            <img src="/images/logo.jpeg" alt="Rosyta Logo" className="w-8 h-8 rounded-lg object-cover shadow-md" />
             {/* Current page label */}
             <span className="font-bold text-base text-foreground">
               {menuItems.find((m) => m.path === location.pathname)?.label ?? "Studio"}
@@ -219,7 +217,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           {/* Safe area bottom for notched phones */}
           <div className="flex items-center justify-around px-2 pt-2 pb-safe-bottom" style={{ paddingBottom: "max(8px, env(safe-area-inset-bottom))" }}>
             {bottomBarItems.map((item) => {
-              const isActive = location.pathname === item.path;
+              const isActive = location.pathname === item.path || (item.path === "/backoffice" && location.pathname === "/backoffice/");
               return (
                 <button
                   key={item.path}
@@ -267,7 +265,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-purple-800 flex items-center justify-center">
                   <span className="text-white font-bold text-sm">R</span>
                 </div>
-                <span className="font-bold text-base">Rosita Studio</span>
+                <span className="font-bold text-base">Rosyta Studio</span>
               </div>
               <button onClick={() => setSidebarOpen(false)} className="p-2 rounded-xl hover:bg-muted transition-colors">
                 <X className="h-5 w-5 text-muted-foreground" />
@@ -291,7 +289,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-3 pb-2">Navigation</p>
               {menuItems.map((item) => {
-                const isActive = location.pathname === item.path;
+                const isActive = location.pathname === item.path || (item.path === "/backoffice" && location.pathname === "/backoffice/");
                 return (
                   <button
                     key={item.path}
@@ -323,7 +321,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
                 <Sparkles className="h-5 w-5 shrink-0" />
                 Assistant IA
               </button>
-              <button onClick={logout} className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-destructive hover:bg-destructive/10 transition-colors font-semibold">
+              <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-destructive dark:text-red-400 hover:bg-destructive/10 transition-colors font-semibold border border-destructive/20">
                 <LogOut className="h-5 w-5 shrink-0" />
                 Déconnexion
               </button>
@@ -334,6 +332,39 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
 
       {/* ══ AI CHAT PANEL ═══════════════════════════════════════════════════════ */}
       <AIChat open={chatOpen} onClose={() => setChatOpen(false)} />
+
+      {/* ══ LOGOUT CONFIRMATION DIALOG ════════════════════════════════════════ */}
+      {confirmLogout && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={cancelLogout} />
+          {/* Dialog */}
+          <div className="relative bg-card border border-border rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-in zoom-in-95 fade-in duration-200">
+            {/* Icon */}
+            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-destructive/10 mx-auto mb-4">
+              <LogOut className="h-6 w-6 text-destructive dark:text-red-400" />
+            </div>
+            <h3 className="text-lg font-bold text-foreground text-center mb-2">Se déconnecter ?</h3>
+            <p className="text-sm text-muted-foreground text-center mb-6">
+              Vous serez redirigé vers la page de connexion. Votre session sera terminée.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={cancelLogout}
+                className="flex-1 py-2.5 rounded-xl border border-border bg-muted text-foreground font-semibold text-sm hover:bg-muted/80 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={confirmLogoutAction}
+                className="flex-1 py-2.5 rounded-xl bg-destructive text-white font-bold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-destructive/25"
+              >
+                Se déconnecter
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

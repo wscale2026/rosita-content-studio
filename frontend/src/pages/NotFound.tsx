@@ -11,8 +11,8 @@ export default function NotFound() {
           La page que vous cherchez n'existe pas.
         </p>
         <Link
-          to="/"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#6750A4] text-white text-sm font-medium hover:bg-[#4F378B] transition-colors"
+          to="/backoffice"
+          className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           Retour au tableau de bord
